@@ -1,4 +1,28 @@
 <algorithms>
+    <algorithm name="FPGA_alloctor">
+        <python_module>pacman.operations.fpga_allocation_algorithms.malloc_based_fpga_allocator</python_module>
+        <python_class>MallocBasedFPGAAllocator</python_class>
+        <required_inputs>
+            <parameter>
+                <param_name>machine</param_name>
+                <param_type>MemoryMachine</param_type>
+            </parameter>
+            <parameter>
+                <param_name>link_interal_fpga_links</param_name>
+                <param_type>LinkInternalFPGATogetherFlag</param_type>
+            </parameter>
+            <parameter>
+                <param_name>link_fpgas_links</param_name>
+                <param_type>LinkExternalFPGATogetherFlag</param_type>
+            </parameter>
+        </required_inputs>
+        <produces_outputs>
+            <parameter>
+                <param_name>machine</param_name>
+                <param_type>MemoryMachine</param_type>
+            </parameter>
+        </produces_outputs>
+    </algorithm>
     <algorithm name="BasicPartitioner">
         <python_module>pacman.operations.partition_algorithms.basic_partitioner</python_module>
         <python_class>BasicPartitioner</python_class>
