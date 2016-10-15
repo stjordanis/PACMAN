@@ -4,6 +4,7 @@ from pacman.model.constraints.key_allocator_constraints.\
     key_allocator_contiguous_range_constraint import \
     KeyAllocatorContiguousRangeContraint
 from pacman.model.graphs.common.slice import Slice
+from pacman.model.graphs.machine.impl.machine_edge import MachineEdge
 
 # unit tests imports
 from uinit_test_objects.test_edge import TestEdge
@@ -12,8 +13,6 @@ from uinit_test_objects.test_vertex import TestVertex
 
 # general imports
 import unittest
-from pacman.model.graphs.machine.impl.simple_machine_edge import \
-    SimpleMachineEdge
 
 
 class TestApplicationEdgeModel(unittest.TestCase):
@@ -101,17 +100,17 @@ class TestApplicationEdgeModel(unittest.TestCase):
         """
         constraint1 = KeyAllocatorContiguousRangeContraint()
         vert1 = TestVertex(10, "New AbstractConstrainedVertex", 256)
+        v_slice = Slice(0, 9)
         v_from_vert1 = vert1.create_machine_vertex(
-            Slice(0, 9),
-            vert1.get_resources_used_by_atoms(Slice(0, 9), None))
+            v_slice, vert1.get_resources_used_by_atoms(v_slice, None))
         vert2 = TestVertex(10, "New AbstractConstrainedVertex", 256)
         v_from_vert2 = vert2.create_machine_vertex(
-            Slice(0, 9),
-            vert2.get_resources_used_by_atoms(Slice(0, 9), None))
+            v_slice, vert2.get_resources_used_by_atoms(v_slice, None))
         edge1 = TestEdge(vert1, vert2, "edge 1")
         edge1.add_constraint(constraint1)
 
-        edge = edge1.create_machine_edge(v_from_vert1, v_from_vert2)
+        edge = edge1.create_machine_edge(
+            v_from_vert1, v_slice, v_from_vert2, v_slice)
         self.assertIn(constraint1, edge.constraints)
 
     def test_new_create_machine_vertex_from_vertex_no_constraints(self):
@@ -122,17 +121,17 @@ class TestApplicationEdgeModel(unittest.TestCase):
         :return:
         """
         vert1 = TestVertex(10, "New AbstractConstrainedVertex", 256)
+        v_slice = Slice(0, 9)
         v_from_vert1 = vert1.create_machine_vertex(
-            Slice(0, 9),
-            vert1.get_resources_used_by_atoms(Slice(0, 9), None))
+            v_slice, vert1.get_resources_used_by_atoms(v_slice, None))
         vert2 = TestVertex(10, "New AbstractConstrainedVertex", 256)
         v_from_vert2 = vert2.create_machine_vertex(
-            Slice(0, 9),
-            vert2.get_resources_used_by_atoms(Slice(0, 9), None))
+            v_slice, vert2.get_resources_used_by_atoms(v_slice, None))
         edge1 = TestEdge(vert1, vert2, "edge 1")
 
-        edge = edge1.create_machine_edge(v_from_vert1, v_from_vert2)
-        self.assertIsInstance(edge, SimpleMachineEdge)
+        edge = edge1.create_machine_edge(
+            v_from_vert1, v_slice, v_from_vert2, v_slice)
+        self.assertIsInstance(edge, MachineEdge)
 
     def test_create_new_machine_edge_from_edge(self):
         """
@@ -141,12 +140,14 @@ class TestApplicationEdgeModel(unittest.TestCase):
         :return:
         """
         vert1 = TestVertex(10, "New AbstractConstrainedVertex 1", 256)
+        v1_slice = Slice(0, 9)
         v_from_vert1 = vert1.create_machine_vertex(
-            Slice(0, 9), vert1.get_resources_used_by_atoms(Slice(0, 9), None))
+            v1_slice, vert1.get_resources_used_by_atoms(v1_slice, None))
         vert2 = TestVertex(5, "New AbstractConstrainedVertex 2", 256)
+        v2_slice = Slice(0, 4)
         v_from_vert2 = vert2.create_machine_vertex(
-            Slice(0, 4), vert2.get_resources_used_by_atoms(Slice(0, 4), None))
+            v2_slice, vert2.get_resources_used_by_atoms(v2_slice, None))
         edge1 = TestEdge(vert1, vert2, "First edge")
-        edge = edge1.create_machine_edge(v_from_vert1, v_from_vert2,
-                                        None, "First edge")
+        edge = edge1.create_machine_edge(
+            v_from_vert1, v1_slice, v_from_vert2, v2_slice, "First edge")
         self.assertEqual(edge.label, "First edge")
