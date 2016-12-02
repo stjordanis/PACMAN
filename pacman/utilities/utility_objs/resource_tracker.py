@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from pacman import exceptions
 from pacman.model.constraints.placer_constraints\
     .placer_radial_placement_from_chip_constraint import \
@@ -93,12 +94,12 @@ class ResourceTracker(object):
         # The amount of SDRAM used by each chip,
         # indexed by the (x, y) tuple of coordinates of the chip
         # Note that entries are only added when the SDRAM is first used
-        self._sdram_tracker = dict()
+        self._sdram_tracker = OrderedDict()
 
         # The set of processor ids available on each chip,
         # indexed by the (x, y) tuple of coordinates of the chip
         # Note that entries are only added when a core is first used
-        self._core_tracker = dict()
+        self._core_tracker = OrderedDict()
 
         # The machine object
         self._machine = machine

@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from pacman import exceptions
 from pacman.exceptions import PacmanAlreadyExistsException
 from pacman.model.abstract_classes.impl.constrained_object \
@@ -9,6 +7,11 @@ from pacman.model.decorators.overrides import overrides
 from pacman.model.graphs.abstract_graph import AbstractGraph
 from pacman.model.graphs.impl.outgoing_edge_partition \
     import OutgoingEdgePartition
+
+from spinn_machine.utilities.default_ordered_dict import DefaultOrderedDict
+
+from collections import defaultdict
+from collections import OrderedDict
 
 
 class Graph(AbstractGraph):
@@ -71,8 +74,8 @@ class Graph(AbstractGraph):
         self._allowed_partition_types = allowed_partition_types
 
         self._vertices = list()
-        self._outgoing_edge_partitions_by_name = dict()
-        self._outgoing_edges = defaultdict(list)
+        self._outgoing_edge_partitions_by_name = OrderedDict()
+        self._outgoing_edges = DefaultOrderedDict(list)
         self._incoming_edges = defaultdict(list)
         self._incoming_edges_by_partition_name = defaultdict(list)
         self._outgoing_edge_partitions_by_pre_vertex = defaultdict(list)
@@ -184,23 +187,19 @@ class Graph(AbstractGraph):
 
     @overrides(AbstractGraph.get_edges_ending_at_vertex)
     def get_edges_ending_at_vertex(self, vertex):
-        if vertex in self._incoming_edges:
-            return self._incoming_edges[vertex]
-        else:
-            return []
+        # returns the item or a empty list.
+        return self._incoming_edges.get(vertex, [])
 
     @overrides(AbstractGraph.get_edges_ending_at_vertex_with_partition_name)
     def get_edges_ending_at_vertex_with_partition_name(
             self, vertex, partition_name):
-        if (vertex, partition_name) in self._incoming_edges_by_partition_name:
-            return self._incoming_edges_by_partition_name[
-                (vertex, partition_name)]
-        else:
-            return []
+        # returns edges ending at vertex with partition name, or a empty list
+        return self._incoming_edges_by_partition_name.get(
+            (vertex, partition_name), [])
 
     @overrides(AbstractGraph.get_outgoing_edge_partitions_starting_at_vertex)
     def get_outgoing_edge_partitions_starting_at_vertex(self, vertex):
-        return self._outgoing_edge_partitions_by_pre_vertex[vertex]
+        return self._outgoing_edge_partitions_by_pre_vertex.get(vertex, [])
 
     @overrides(AbstractGraph.get_outgoing_edge_partition_starting_at_vertex)
     def get_outgoing_edge_partition_starting_at_vertex(
@@ -210,4 +209,5 @@ class Graph(AbstractGraph):
 
     @overrides(AbstractGraph.get_outgoing_edge_partitions_with_traffic_type)
     def get_outgoing_edge_partitions_with_traffic_type(self, traffic_type):
-        return self._outgoing_edge_partitions_by_traffic_type[traffic_type]
+        return self._outgoing_edge_partitions_by_traffic_type.get(
+            traffic_type, [])

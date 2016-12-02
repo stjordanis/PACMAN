@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from pacman.exceptions import PacmanInvalidParameterException
 
 
@@ -25,10 +26,10 @@ class Tags(object):
     def __init__(self):
 
         # Mapping of (board address, tag) to IPTag
-        self._ip_tags = dict()
+        self._ip_tags = OrderedDict()
 
         # Mapping of (board address, tag) to ReverseIPTag
-        self._reverse_ip_tags = dict()
+        self._reverse_ip_tags = OrderedDict()
 
         # Mapping of vertex to list of IPTag
         self._ip_tags_by_vertex = dict()

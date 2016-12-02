@@ -2,6 +2,7 @@ from pacman.exceptions import (PacmanAlreadyPlacedError,
                                PacmanNotPlacedError,
                                PacmanProcessorAlreadyOccupiedError,
                                PacmanProcessorNotOccupiedError)
+from collections import OrderedDict
 
 
 class Placements(object):
@@ -30,7 +31,7 @@ class Placements(object):
         :raise PacmanProcessorAlreadyOccupiedError:\
             If two placements are made to the same processor.
         """
-        self._placements = dict()
+        self._placements = OrderedDict()
         self._machine_vertices = dict()
         if placements is not None:
             self.add_placements(placements)

@@ -1,4 +1,5 @@
 from pacman.exceptions import PacmanAlreadyExistsException
+from spinn_machine.utilities.ordered_set import OrderedSet
 
 
 class MulticastRoutingTables(object):
@@ -21,7 +22,7 @@ class MulticastRoutingTables(object):
         :raise pacman.exceptions.PacmanAlreadyExistsException: If any two\
                     routing tables are for the same chip
         """
-        self._routing_tables = set()
+        self._routing_tables = OrderedSet()
         self._routing_tables_by_chip = dict()
 
         if routing_tables is not None:

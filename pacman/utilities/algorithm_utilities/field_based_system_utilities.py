@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from pacman.model.constraints.key_allocator_constraints.\
     key_allocator_contiguous_range_constraint import \
     KeyAllocatorContiguousRangeContraint
@@ -39,7 +40,7 @@ def deduce_types(graph):
     :param graph:
     :return:
     """
-    seen_fields = dict()
+    seen_fields = OrderedDict()
     known_fields = list()
     for partition in graph.outgoing_edge_partitions:
         for constraint in partition.constraints:

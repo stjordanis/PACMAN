@@ -4,6 +4,7 @@ from pacman.model.abstract_classes.abstract_has_constraints\
 from pacman.model.decorators.overrides import overrides
 from pacman.model.constraints.abstract_constraint \
     import AbstractConstraint
+from spinn_machine.utilities.ordered_set import OrderedSet
 
 
 class ConstrainedObject(AbstractHasConstraints):
@@ -24,7 +25,7 @@ class ConstrainedObject(AbstractHasConstraints):
 
         # safety point for diamond inheritance
         if not hasattr(self, 'constraints'):
-            self._constraints = set()
+            self._constraints = OrderedSet()
 
         # add new constraints to the set
         self.add_constraints(constraints)

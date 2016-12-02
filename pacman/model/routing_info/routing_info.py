@@ -68,7 +68,7 @@ class RoutingInfo(object):
 
         self._partition_info_by_partition[partition] = partition_info
         self._partition_info_by_pre_vertex[
-            partition.pre_vertex, partition.identifier] = partition_info
+            (partition.pre_vertex, partition.identifier)] = partition_info
 
         for edge in partition.edges:
             self._partition_info_by_edge[edge] = partition_info
@@ -95,9 +95,7 @@ class RoutingInfo(object):
                     :py:class:`pacman.model.graph.simple_outgoing_edge_partition.OutgoingEdgePartition`
         :return: the partition_routing_info for the partition
         """
-        if partition in self._partition_info_by_partition:
-            return self._partition_info_by_partition[partition]
-        return None
+        return self._partition_info_by_partition.get(partition, None)
 
     def get_routing_info_from_pre_vertex(self, vertex, partition_id):
         """ Get routing information for edges with a given partition_id from\
@@ -107,9 +105,8 @@ class RoutingInfo(object):
         :param partition_id: The id of the partition for which to get\
                     the routing information
         """
-        if (vertex, partition_id) in self._partition_info_by_pre_vertex:
-            return self._partition_info_by_pre_vertex[vertex, partition_id]
-        return None
+        return self._partition_info_by_pre_vertex.get(
+            (vertex, partition_id), None)
 
     def get_first_key_from_pre_vertex(self, vertex, partition_id):
         """ Get the first key for the partition starting at a vertex
@@ -140,10 +137,3 @@ class RoutingInfo(object):
         if edge in self._partition_info_by_edge:
             return self._partition_info_by_edge[edge].keys_and_masks[0].key
         return None
-
-    def __iter__(self):
-        """ returns a iterator for the partition routing information
-
-        :return: a iterator of partition routing information
-        """
-        return iter(self._partition_infos_by_key)

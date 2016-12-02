@@ -1,3 +1,6 @@
+from collections import OrderedDict
+from spinn_machine.utilities.default_ordered_dict import DefaultOrderedDict
+
 
 class MulticastRoutingTableByPartition(object):
     """ A set of multicast routing path objects
@@ -9,7 +12,7 @@ class MulticastRoutingTableByPartition(object):
     ]
 
     def __init__(self):
-        self._router_to_entries_map = dict()
+        self._router_to_entries_map = DefaultOrderedDict(OrderedDict)
 
     def add_path_entry(self, entry, router_x, router_y, partition):
         """ Adds a multicast routing path entry
@@ -24,8 +27,6 @@ class MulticastRoutingTableByPartition(object):
 
         # update router_to_entries_map
         key = (router_x, router_y)
-        if key not in self._router_to_entries_map:
-            self._router_to_entries_map[key] = dict()
 
         if partition not in self._router_to_entries_map[key]:
             self._router_to_entries_map[key][partition] = entry
@@ -46,10 +47,7 @@ class MulticastRoutingTableByPartition(object):
         :return: return all router_path_entries for the router.
         """
         key = (router_x, router_y)
-        if key not in self._router_to_entries_map:
-            return ()
-        else:
-            return self._router_to_entries_map[key]
+        return self._router_to_entries_map.get(key, ())
 
     def get_entry_on_coords_for_edge(self, partition, router_x, router_y):
         """ Get an entry from a specific coordinate

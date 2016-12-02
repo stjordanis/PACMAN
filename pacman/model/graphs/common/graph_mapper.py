@@ -86,6 +86,8 @@ class GraphMapper(object):
         :param application_vertex: A vertex from an Application Graph
         :return: An iterable of machine vertices or None if none
         """
+
+        # returns the value or none if not existent
         return self._machine_vertices_by_application_vertex.get(
             application_vertex, None)
 
@@ -101,6 +103,8 @@ class GraphMapper(object):
         :param application_edge: An edge from an Application Graph
         :return: An iterable of machine edges or None if none
         """
+
+        # returns the value or none if not existent
         return self._machine_edges_by_application_edge.get(
             application_edge, None)
 
@@ -110,6 +114,8 @@ class GraphMapper(object):
         :param machine_vertex: A vertex from a Machine Graph
         :return: an application vertex, or None if none
         """
+
+        # returns the value or none if not existent
         return self._application_vertex_by_machine_vertex.get(
             machine_vertex, None)
 
@@ -119,6 +125,8 @@ class GraphMapper(object):
         :param machine_edge: An edge from a Machine Graph
         :return: A machine edge, or None if none
         """
+
+        # returns the value or none if not existent
         return self._application_edge_by_machine_edge.get(machine_edge, None)
 
     def get_slice(self, machine_vertex):
@@ -128,9 +136,13 @@ class GraphMapper(object):
         :return:\
             a slice object containing the low and high atom or None if none
         """
+
+        # returns the value or none if not existent
         return self._slice_by_machine_vertex.get(machine_vertex, None)
 
     def get_slices(self, application_vertex):
         """ Get all the slices mapped to an application vertex
         """
+
+        # returns the value or none if not existent
         return self._slices_by_application_vertex.get(application_vertex, None)
