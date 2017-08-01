@@ -104,16 +104,6 @@ class ConvertToMemoryMultiCastRoutes(object):
         #       recursion
         # validate the json files against the schemas
         # verify that the files meet the schema.
-        # locate schemas
-        # file_routing_paths_schema_file_path = os.path.join(
-        #     os.path.dirname(file_format_schemas.__file__), "routes.json"
-        # )
-        # open readers for schemas and read in schema
-        # file_to_read = open(file_routing_paths_schema_file_path, "r")
-        # routing_paths_schema = json.load(file_to_read)
-
-        # validate json file from json schema
-        # jsonschema.validate(
-        #    file_routing_paths, routing_paths_schema)
+        #     validator.validate_routes(file_routing_paths)
 
         # return file_routing_paths

@@ -2,14 +2,14 @@ from pacman.model.graphs import AbstractVirtualVertex
 from pacman.model.constraints.placer_constraints\
     import ChipAndCoreConstraint, AbstractPlacerConstraint
 from pacman.exceptions import PacmanConfigurationException
-from pacman.utilities import utility_calls, file_format_schemas
+from pacman.utilities import utility_calls
 from pacman.utilities.constants import EDGES
+from pacman.utilities.file_format_schemas.validator \
+    import validate_constraints
 
 from spinn_utilities.progress_bar import ProgressBar
 
 import json
-import os
-import jsonschema
 
 
 class CreateConstraintsToFile(object):
@@ -35,16 +35,11 @@ class CreateConstraintsToFile(object):
         vertex_by_id = self._search_graph_for_placement_constraints(
             json_obj, machine_graph, machine, progress)
 
-        with open(file_path, "w") as file_to_write:
-            json.dump(json_obj, file_to_write)
+        with open(file_path, "w") as f:
+            json.dump(json_obj, f)
 
-        # validate the schema
-        constraints_schema_file_path = os.path.join(
-            os.path.dirname(file_format_schemas.__file__), "constraints.json")
-
-        # for debug purposes, read schema and validate
-        with open(constraints_schema_file_path, "r") as file_to_read:
-            jsonschema.validate(json_obj, json.load(file_to_read))
+        # validate against the schema
+        validate_constraints(json_obj)
 
         # complete progress bar
         progress.end()

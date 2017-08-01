@@ -8,9 +8,7 @@ from pacman.model.constraints.key_allocator_constraints \
     import FixedKeyAndMaskConstraint
 from pacman.model.constraints.key_allocator_constraints \
     import ContiguousKeyRangeContraint
-from pacman.operations.routing_info_allocator_algorithms\
-    .malloc_based_routing_allocator.key_field_generator \
-    import KeyFieldGenerator
+from .key_field_generator import KeyFieldGenerator
 from pacman.model.routing_info \
     import RoutingInfo, BaseKeyAndMask, PartitionRoutingInfo
 from pacman.utilities.utility_calls import \
@@ -137,7 +135,6 @@ class CompressibleMallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
             key=lambda item: len(routing_tables.get_entries_for_router(
                 item[0], item[1]))))
         for x, y in routers:
-
             # Find all partitions that share a route in this table
             partitions_by_route = defaultdict(OrderedSet)
             routing_table = routing_tables.get_entries_for_router(x, y)
@@ -194,19 +191,19 @@ class CompressibleMallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
         return routing_infos
 
     @staticmethod
-    def _update_routing_objects(
-            keys_and_masks, routing_infos, group):
+    def _update_routing_objects(keys_and_masks, routing_infos, group):
         # Allocate the routing information
         partition_info = PartitionRoutingInfo(keys_and_masks, group)
         routing_infos.add_partition_info(partition_info)
 
     @staticmethod
     def _get_key_ranges(key, mask):
-        """ Get a generator of base_key, n_keys pairs that represent ranges
+        """ Get a generator of base_key, n_keys pairs that represent ranges\
             allowed by the mask
 
         :param key: The base key
         :param mask: The mask
+        :return: iterator
         """
         unwrapped_mask = expand_to_bit_array(mask)
         first_zeros = list()
@@ -224,8 +221,8 @@ class CompressibleMallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
                 remaining_zeros.append(pos)
             pos -= 1
 
-        # Loop over 2^len(remaining_zeros) to produce the base key,
-        # with n_keys being 2^len(first_zeros)
+        # Loop over 2^len(remaining_zeros) to produce the base key, with
+        # n_keys being 2^len(first_zeros)
         n_sets = 2 ** len(remaining_zeros)
         n_keys = 2 ** len(first_zeros)
         unwrapped_key = expand_to_bit_array(key)
@@ -253,7 +250,6 @@ class CompressibleMallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
     def _allocate_fixed_keys_and_masks(self, keys_and_masks, fixed_mask):
         # If there are fixed keys and masks, allocate them
         for key_and_mask in keys_and_masks:
-
             # If there is a fixed mask, check it doesn't clash
             if fixed_mask is not None and fixed_mask != key_and_mask.mask:
                 raise PacmanRouteInfoAllocationException(

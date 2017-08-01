@@ -1,11 +1,15 @@
 import hashlib
 import json
 from collections import defaultdict
+
 from pacman.model.graphs import AbstractVirtualVertex
 
 from spinn_utilities.progress_bar import ProgressBar
+from pacman.utilities.file_format_schemas.validator \
+    import validate_machine_graph
 
 DEFAULT_NUMBER_OF_CORES_USED_PER_VERTEX = 1
+_VALIDATE = False
 
 
 class ConvertToFileMachineGraph(object):
@@ -40,10 +44,13 @@ class ConvertToFileMachineGraph(object):
                                  edges_resources, machine_graph,
                                  partition_by_id)
 
-        with open(file_path, "w") as file_to_write:
-            json.dump(json_graph_directory_rep, file_to_write)
+        with open(file_path, "w") as f:
+            json.dump(json_graph_directory_rep, f)
         progress.update()
 
+        # validate the schema
+        if _VALIDATE:
+            validate_machine_graph(json_graph_directory_rep)
         progress.end()
 
         return file_path, vertex_by_id, partition_by_id

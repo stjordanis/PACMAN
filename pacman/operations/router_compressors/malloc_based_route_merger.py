@@ -6,6 +6,8 @@ from spinn_machine import MulticastRoutingEntry
 
 import math
 
+_LOW_32_BITS = 0xFFFFFFFFL
+
 
 class MallocBasedRouteMerger(object):
     """ a routing table entry merging function, that merges based off a
@@ -20,11 +22,10 @@ class MallocBasedRouteMerger(object):
         previous_masks = dict()
 
         progress = ProgressBar(
-            len(router_tables.routing_tables) * 2,
-            "Compressing Routing Tables")
+            router_tables.routing_tables, "Compressing Routing Tables")
 
         # Create all masks without holes
-        allowed_masks = [0xFFFFFFFFL - ((2 ** i) - 1) for i in range(33)]
+        allowed_masks = [_LOW_32_BITS - ((2 ** i) - 1) for i in range(33)]
 
         # Check that none of the masks have "holes" e.g. 0xFFFF0FFF has a hole
         for router_table in router_tables.routing_tables:
@@ -74,47 +75,48 @@ class MallocBasedRouteMerger(object):
                     entries[next_pos].processor_ids == processors and
                     (base_key & entries[next_pos].routing_entry_key) >
                     last_key_added):
-                base_key = (
-                    base_key & entries[next_pos].routing_entry_key)
+                base_key = base_key & entries[next_pos].routing_entry_key
                 next_pos += 1
             next_pos -= 1
-
-            # print "Pre decision", hex(base_key)
 
             # If there is something to merge, merge it if possible
             merge_done = False
             if next_pos != pos:
-
-                # print "At merge, base_key =", hex(base_key)
-
-                # Find the next nearest power of 2 to the number of keys
-                # that will be covered
-                last_key = (
-                    entries[next_pos].routing_entry_key +
-                    (~entries[next_pos].mask & 0xFFFFFFFFL))
-                n_keys = (last_key - base_key) + 1
-                next_log_n_keys = int(math.ceil(math.log(n_keys, 2)))
-                n_keys = (1 << next_log_n_keys) - 1
-                n_keys_mask = ~n_keys & 0xFFFFFFFFL
-                base_key = base_key & n_keys_mask
-                if ((base_key + n_keys) >= last_key and
-                        base_key > last_key_added and
-                        (next_pos + 1 >= len(entries) or
-                         entries[pos].routing_entry_key + n_keys <
-                         entries[next_pos + 1].routing_entry_key)):
-                    last_key_added = base_key + n_keys
-                    merged_routes.add_multicast_routing_entry(
-                        MulticastRoutingEntry(
-                            int(base_key), n_keys_mask,
-                            processors, links, defaultable=False))
-                    pos = next_pos
-                    merge_done = True
+                last_key_added, next_pos, merge_done = self._merge_a_route(
+                    processors, links, entries, pos, next_pos, base_key,
+                    last_key_added, merged_routes)
 
             if not merge_done:
                 merged_routes.add_multicast_routing_entry(entries[pos])
-                last_key_added = (
-                    entries[pos].routing_entry_key +
-                    (~entries[pos].mask & 0xFFFFFFFFL))
+                last_key_added = self._last_key(
+                    entries[pos].routing_entry_key, entries[pos].mask)
             pos += 1
 
         return merged_routes
+
+    def _merge_a_route(self, processors, links, entries, pos, next_pos,
+                       base_key, last_key_added, merged_routes):
+        # Find the next nearest power of 2 to the number of keys that will be
+        # covered.
+        last_key = self._last_key(
+            entries[next_pos].routing_entry_key, entries[next_pos].mask)
+        n_keys = (last_key - base_key) + 1
+        next_log_n_keys = int(math.ceil(math.log(n_keys, 2)))
+        n_keys = (1 << next_log_n_keys) - 1
+        n_keys_mask = ~n_keys & _LOW_32_BITS
+        base_key = base_key & n_keys_mask
+        if base_key + n_keys >= last_key and base_key > last_key_added and (
+                next_pos + 1 >= len(entries) or
+                entries[pos].routing_entry_key + n_keys <
+                entries[next_pos + 1].routing_entry_key):
+            last_key_added = base_key + n_keys
+            merged_routes.add_multicast_routing_entry(MulticastRoutingEntry(
+                int(base_key), n_keys_mask, processors, links,
+                defaultable=False))
+            return last_key_added, next_pos, True
+        return last_key_added, pos, False
+
+    @staticmethod
+    def _last_key(key, mask):
+        n_keys = ~mask & _LOW_32_BITS
+        return key + n_keys

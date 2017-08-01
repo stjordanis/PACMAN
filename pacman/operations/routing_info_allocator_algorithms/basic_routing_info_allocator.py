@@ -59,27 +59,30 @@ class BasicRoutingInfoAllocator(object):
             machine_graph.n_vertices, "Allocating routing keys")
         routing_infos = RoutingInfo()
         for vertex in progress.over(machine_graph.vertices):
-            partitions = machine_graph.\
-                get_outgoing_edge_partitions_starting_at_vertex(vertex)
-            for partition in partitions:
-                n_keys = n_keys_map.n_keys_for_partition(partition)
-                if n_keys > MAX_KEYS_SUPPORTED:
-                    raise PacmanRouteInfoAllocationException(
-                        "This routing info allocator can only support up to {}"
-                        " keys for any given edge; cannot therefore"
-                        " allocate keys to {}, which is requesting {} keys"
-                        .format(MAX_KEYS_SUPPORTED, partition, n_keys))
-                placement = placements.get_placement_of_vertex(vertex)
-                if placement is None:
-                    raise PacmanRouteInfoAllocationException(
-                        "The vertex '{}' has no placement".format(vertex))
-                key = self._get_key_from_placement(placement)
-                keys_and_masks = list([BaseKeyAndMask(
-                    base_key=key, mask=MASK)])
-                routing_infos.add_partition_info(PartitionRoutingInfo(
-                    keys_and_masks, partition))
+            for partition in machine_graph.\
+                    get_outgoing_edge_partitions_starting_at_vertex(vertex):
+                routing_infos.add_partition_info(self._create_routing_info(
+                    vertex, partition, placements, n_keys_map))
 
         return routing_infos
+
+    def _create_routing_info(self, vertex, partition, placements, n_keys_map):
+        n_keys = n_keys_map.n_keys_for_partition(partition)
+        if n_keys > MAX_KEYS_SUPPORTED:
+            raise PacmanRouteInfoAllocationException(
+                "This routing info allocator can only support up to {} keys "
+                "for any given edge; cannot therefore allocate keys to {}, "
+                "which is requesting {} keys".format(
+                    MAX_KEYS_SUPPORTED, partition, n_keys))
+
+        placement = placements.get_placement_of_vertex(vertex)
+        if placement is None:
+            raise PacmanRouteInfoAllocationException(
+                "The vertex '{}' has no placement".format(vertex))
+
+        key = self._get_key_from_placement(placement)
+        keys_and_masks = list([BaseKeyAndMask(base_key=key, mask=MASK)])
+        return PartitionRoutingInfo(keys_and_masks, partition)
 
     @staticmethod
     def _get_key_from_placement(placement):

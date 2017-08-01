@@ -1,12 +1,10 @@
 from pacman.utilities import constants
-from pacman.utilities import file_format_schemas
+from pacman.utilities.file_format_schemas.validator import validate_machine
 from spinn_utilities.progress_bar import ProgressBar
 
 from collections import defaultdict
 
 import json
-import jsonschema
-import os
 
 CHIP_HOMOGENEOUS_CORES = 18
 CHIP_HOMOGENEOUS_SDRAM = 119275520
@@ -56,14 +54,11 @@ class ConvertToFileMachine(object):
         progress.update()
 
         # dump to json file
-        with open(file_path, "w") as file_to_write:
-            json.dump(json_obj, file_to_write)
+        with open(file_path, "w") as f:
+            json.dump(json_obj, f)
 
         # validate the schema
-        machine_schema_file_path = os.path.join(
-            os.path.dirname(file_format_schemas.__file__), "machine.json")
-        with open(machine_schema_file_path, "r") as file_to_read:
-            jsonschema.validate(json_obj, json.load(file_to_read))
+        validate_machine(json_obj)
 
         # update and complete progress bar
         progress.update()

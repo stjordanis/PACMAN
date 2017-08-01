@@ -14,7 +14,7 @@ from pacman.model.routing_info \
 from pacman.utilities.utility_calls import locate_constraints_of_type
 from pacman.utilities.algorithm_utilities import \
     routing_info_allocator_utilities
-from pacman import exceptions
+from pacman.exceptions import PacmanConfigurationException
 from pacman.utilities.utility_objs import FlexiField
 from pacman.utilities.utility_objs.flexi_field import SUPPORTED_TAGS
 from pacman.utilities.algorithm_utilities import \
@@ -152,30 +152,29 @@ class VertexBasedRoutingInfoAllocator(object):
         application_field, _ = self._locate_application_field(seen_fields)
 
         for field in seen_fields:
-            if field not in FIXED_NAMES:
-                if application_field is None:
-                    field_positions = \
-                        self._assign_flexi_field_positions_recursive(
-                            bit_field_space, field, seen_fields,
-                            field_positions)
-                else:
-                    inputs = dict()
-                    inputs[APPLICATION_DIVIDER_FIELD_NAME] = \
-                        self._flexi_field_application_field_values[field]
-                    this_bit_field_space = bit_field_space(**inputs)
-                    field_positions = \
-                        self._assign_flexi_field_positions_recursive(
-                            this_bit_field_space, field, seen_fields,
-                            field_positions)
+            if field in FIXED_NAMES:
+                continue
+            if application_field is None:
+                field_positions = self._assign_flexi_field_positions_recursive(
+                    bit_field_space, field, seen_fields, field_positions)
+            else:
+                inputs = dict()
+                inputs[APPLICATION_DIVIDER_FIELD_NAME] = \
+                    self._flexi_field_application_field_values[field]
+                this_bit_field_space = bit_field_space(**inputs)
+                field_positions = self._assign_flexi_field_positions_recursive(
+                    this_bit_field_space, field, seen_fields, field_positions)
 
     def _assign_flexi_field_positions_recursive(
             self, bit_field_space, field, fields, field_positions):
+        """
+        :param field_positions: set(tuple(int, int))
+        """
         low, length = bit_field_space.get_location_and_length(field)
         hi = low + length
         field_positions.add((hi, low))
 
         for field_instance in fields[field]:
-
             # only carry on if there's more to create
             if fields[field][field_instance]:
                 inputs = dict()
@@ -184,13 +183,9 @@ class VertexBasedRoutingInfoAllocator(object):
 
                 # deal with next level hierarchy
                 for nested_field in fields[field][field_instance]:
-                    new_field_positions = \
-                        self._assign_flexi_field_positions_recursive(
-                            this_bit_field_space, nested_field,
-                            fields[field][field_instance], field_positions)
-                    for field_position in new_field_positions:
-                        field_positions.add(field_position)
-        return field_positions
+                    self._assign_flexi_field_positions_recursive(
+                        this_bit_field_space, nested_field,
+                        fields[field][field_instance], field_positions)
 
     def _adds_application_field_to_the_fields(self, seen_fields):
         """ Determine what the field spaces and values are for the\
@@ -218,102 +213,105 @@ class VertexBasedRoutingInfoAllocator(object):
             self, seen_fields, required_bits):
         fixed_keys = seen_fields[FIXED_KEY_NAME]
         if len(fixed_keys) == 1:
-            found = False
-            searching = True
-
-            # generate the bit generator for the fixed key
-            fixed_key = fixed_keys[0]
-            fields = field_utilities.convert_mask_into_fields(fixed_key.mask)
-            bit_generator = self._generate_bits_that_satisfy_constraints(
-                fields, required_bits)
-
-            # search for a set of bits which will work for the fixed key and
-            # any fixed masks that exist
-            while searching:
-
-                # use the fixed mask functionality to generate the fields for
-                #  the fixed key
-                application_field, new_fields = \
-                    self._update_fixed_mask_field_set(
-                        bit_generator, fixed_key.key)
-                seen_fields[FIXED_KEY_NAME] = list()
-                seen_fields[FIXED_KEY_NAME].append((fixed_key, new_fields))
-
-                # if there's fixed masks as well, ensure they work with the
-                field_name = FIXED_MASK_NAME
-                if field_name in seen_fields:
-                    success = self._fixed_mask_application_field_allocation(
-                        seen_fields, application_field, required_bits)
-                    if success:
-                        return True
-                else:
-                    return True
-            return found
+            return self._single_fixed_key_application_field_allocation(
+                seen_fields, required_bits, fixed_keys)
         else:
+            return self._multiple_fixed_key_application_field_allocation(
+                seen_fields, required_bits, fixed_keys)
 
-            # more than 1 fixed key exists
-            # generate the  bit generator for the first key, as this is the
-            # premise of all the other keys to meet
-            new_fixed_keys = list()
+    # WARNING! This method has dangerous failure modes (infinite loops)
+    def _single_fixed_key_application_field_allocation(
+            self, seen_fields, required_bits, fixed_keys):
+        # generate the bit generator for the fixed key
+        fixed_key = fixed_keys[0]
+        fields = field_utilities.convert_mask_into_fields(fixed_key.mask)
+        bit_generator = self._generate_bits_that_satisfy_constraints(
+            fields, required_bits)
 
-            # generate the bit generator for the fixed key
-            fixed_key = fixed_keys[0]
-            fields = field_utilities.convert_mask_into_fields(fixed_key.mask)
-            bit_generator = self._generate_bits_that_satisfy_constraints(
-                fields, required_bits)
+        # search for a set of bits which will work for the fixed key and
+        # any fixed masks that exist
+        while True:
+            # use the fixed mask functionality to generate the fields for
+            #  the fixed key
+            application_field, new_fields = self._update_fixed_mask_field_set(
+                bit_generator, fixed_key.key)
+            seen_fields[FIXED_KEY_NAME] = list()
+            seen_fields[FIXED_KEY_NAME].append((fixed_key, new_fields))
 
-            # search till we find a application field which meets all
-            # requirements
-            while True:
-                application_field, new_fields = \
-                    self._update_fixed_mask_field_set(bit_generator)
+            # if there's fixed masks as well, ensure they work with the
+            field_name = FIXED_MASK_NAME
+            if field_name not in seen_fields:
+                return True
+            success = self._fixed_mask_application_field_allocation(
+                seen_fields, application_field, required_bits)
+            if success:
+                return True
 
-                # check that all the other fields can meet the value for this
-                # field's application field value
-                valid = True
-                for fixed_key_index in range(1, len(fixed_keys)):
-                    fixed_key = fixed_keys[fixed_key_index]
-                    fields = field_utilities.convert_mask_into_fields(
-                        fixed_key.mask)
-                    application_field_value = \
-                        self._determine_fixed_mask_application_field_value(
-                            fields[0].value, application_field.hi,
-                            application_field.lo)
-                    if application_field_value != application_field.value:
-                        valid = False
+    # WARNING! This method has dangerous failure modes (infinite loops)
+    def _multiple_fixed_key_application_field_allocation(
+            self, seen_fields, required_bits, fixed_keys):
+        # more than 1 fixed key exists
+        # generate the  bit generator for the first key, as this is the
+        # premise of all the other keys to meet
+        new_fixed_keys = list()
 
-                # if valid, update all fields
-                if valid:
-                    # set the first one which has had its already generated
-                    new_fixed_keys.append((fixed_keys[0], new_fields))
+        # generate the bit generator for the fixed key
+        fixed_key = fixed_keys[0]
+        fields = field_utilities.convert_mask_into_fields(fixed_key.mask)
+        bit_generator = self._generate_bits_that_satisfy_constraints(
+            fields, required_bits)
 
-                    # set the rest of the fields which need computing
-                    for fixed_key_index in range(1, len(fixed_keys)):
-                        fixed_key = fixed_keys[fixed_key_index]
-                        fields = field_utilities.convert_mask_into_fields(
-                            fixed_key.mask)
-                        # create new fields
-                        new_fields = self.\
-                            _adjust_fixed_mask_fields_for_application_field(
-                                fields[0].value, application_field.hi,
-                                application_field.value)
+        # search till we find a application field which meets all
+        # requirements
+        while True:
+            application_field, new_fields = \
+                self._update_fixed_mask_field_set(bit_generator)
 
-                        # update the fields for this fixed mask
-                        new_fixed_keys.append((fixed_key, new_fields))
+            # check that all the other fields can meet the value for this
+            # field's application field value
+            valid = True
+            for fixed_key_index in range(1, len(fixed_keys)):
+                fixed_key = fixed_keys[fixed_key_index]
+                fields = field_utilities.convert_mask_into_fields(
+                    fixed_key.mask)
+                application_field_value = \
+                    self._determine_fixed_mask_application_field_value(
+                        fields[0].value, application_field.hi,
+                        application_field.lo)
+                if application_field_value != application_field.value:
+                    valid = False
 
-                    field_name = FIXED_MASK_NAME
-                    if field_name in seen_fields:
-                        success = \
-                            self._fixed_mask_application_field_allocation(
-                                seen_fields, application_field, required_bits)
-                        if success:
-                            # update the fixed keys fields
-                            seen_fields[FIXED_KEY_NAME] = new_fixed_keys
-                            return True
-                    else:
-                        # update the fixed keys fields
-                        seen_fields[FIXED_KEY_NAME] = new_fixed_keys
-                        return True
+            if not valid:
+                continue
+
+            # valid, so update all fields.
+            # set the first one which has had its already generated
+            new_fixed_keys.append((fixed_keys[0], new_fields))
+
+            # set the rest of the fields which need computing
+            for fixed_key_index in range(1, len(fixed_keys)):
+                fixed_key = fixed_keys[fixed_key_index]
+                fields = field_utilities.convert_mask_into_fields(
+                    fixed_key.mask)
+                # create new fields
+                new_fields = self.\
+                    _adjust_fixed_mask_fields_for_application_field(
+                        fields[0].value, application_field.hi,
+                        application_field.value)
+
+                # update the fields for this fixed mask
+                new_fixed_keys.append((fixed_key, new_fields))
+
+            field_name = FIXED_MASK_NAME
+            if field_name not in seen_fields:
+                # update the fixed keys fields
+                seen_fields[FIXED_KEY_NAME] = new_fixed_keys
+                return True
+            if self._fixed_mask_application_field_allocation(
+                    seen_fields, application_field, required_bits):
+                # update the fixed keys fields
+                seen_fields[FIXED_KEY_NAME] = new_fixed_keys
+                return True
 
     def _fixed_mask_application_field_allocation(
             self, seen_fields, application_field, required_bits):
@@ -560,11 +558,11 @@ class VertexBasedRoutingInfoAllocator(object):
                 elif tag == SUPPORTED_TAGS.APPLICATION.name:
                     range_based_fixed_key_fields.append(fixed_key_field)
                 else:
-                    raise exceptions.PacmanConfigurationException(
+                    raise PacmanConfigurationException(
                         "Don't know this tag field, sorry")
 
             if len(range_based_fixed_key_fields) > 1:
-                raise exceptions.PacmanConfigurationException(
+                raise PacmanConfigurationException(
                     "Multiple fixed key fields are not supported")
 
             # get n keys from n_keys_map for the range based mask part
@@ -611,11 +609,11 @@ class VertexBasedRoutingInfoAllocator(object):
                 elif tag == SUPPORTED_TAGS.APPLICATION.name:
                     range_based_fixed_mask_fields.append(fixed_mask_field)
                 else:
-                    raise exceptions.PacmanConfigurationException(
+                    raise PacmanConfigurationException(
                         "I don't recognise this tag. sorry")
 
             if len(range_based_fixed_mask_fields) > 1:
-                raise exceptions.PacmanConfigurationException(
+                raise PacmanConfigurationException(
                     "Multiple fixed mask fields are not supported")
 
             # get n keys from n_keys_map for the range based mask part
@@ -629,8 +627,8 @@ class VertexBasedRoutingInfoAllocator(object):
                     tag=SUPPORTED_TAGS.ROUTING.name)
                 routing_mask = bit_field_space(**inputs).get_mask(
                     tag=SUPPORTED_TAGS.ROUTING.name)
-                routing_keys_and_masks.append(BaseKeyAndMask(routing_key,
-                                                             routing_mask))
+                routing_keys_and_masks.append(BaseKeyAndMask(
+                     routing_key, routing_mask))
 
                 # application keys and masks
                 application_key = bit_field_space(**inputs).get_value(
@@ -645,7 +643,7 @@ class VertexBasedRoutingInfoAllocator(object):
 
         elif fixed_field_constraints:
             # TODO: need to fill this out
-            raise exceptions.PacmanConfigurationException(
+            raise PacmanConfigurationException(
                 "Fixed field constraints are not supported")
 
         elif flexi_field_constraints:
@@ -683,7 +681,7 @@ class VertexBasedRoutingInfoAllocator(object):
         if continuous_constraints:
             if not self._check_keys_are_continuous(
                     application_keys_and_masks):
-                raise exceptions.PacmanConfigurationException(
+                raise PacmanConfigurationException(
                     "These keys returned from the bitfield are"
                     "not continuous. Therefore cannot be used")
 
@@ -729,8 +727,7 @@ class VertexBasedRoutingInfoAllocator(object):
         :return: routing keys and application keys for the flexible field set
         """
 
-        for value in range(0,
-                           range_based_flexi_fields[position].instance_n_keys):
+        for value in range(range_based_flexi_fields[position].instance_n_keys):
             inputs[range_based_flexi_fields[position].name] = value
             if position < len(range_based_flexi_fields):
                 # routing keys and masks
@@ -836,9 +833,8 @@ class VertexBasedRoutingInfoAllocator(object):
 
             # handle fixed field
             elif field == FIXED_FIELD_NAME:
-
                 # TODO: need to check this bit out
-                raise exceptions.PacmanConfigurationException(
+                raise PacmanConfigurationException(
                     "Fixed Fields are not currently supported")
 
             # handle fixed key fields
@@ -930,8 +926,7 @@ class VertexBasedRoutingInfoAllocator(object):
 
             # if a fixed mask field, locate correct application field and value
             if field == FIXED_MASK_NAME:
-                fixed_fields = \
-                    fields[FIXED_MASK_NAME]
+                fixed_fields = fields[FIXED_MASK_NAME]
                 for fixed_field_key in fixed_fields:
                     fixed_field_list = fixed_fields[fixed_field_key]
                     for fixed_field in fixed_field_list:
@@ -948,8 +943,7 @@ class VertexBasedRoutingInfoAllocator(object):
                                 application_field_spare_values.remove(
                                     fixed_field.value)
             elif field == FIXED_KEY_NAME:
-                fixed_keys_fields = \
-                    fields[FIXED_KEY_NAME]
+                fixed_keys_fields = fields[FIXED_KEY_NAME]
                 for (_, fixed_key_fields) in fixed_keys_fields:
                     for fixed_key_field in fixed_key_fields:
                         if (fixed_key_field.name ==
@@ -963,9 +957,8 @@ class VertexBasedRoutingInfoAllocator(object):
                                 application_field_spare_values.remove(
                                     fixed_key_field.value)
             elif field == FIXED_FIELD_NAME:
-
                 # TODO: NEED TO COMPLETE THIS BIT
-                raise exceptions.PacmanConfigurationException(
+                raise PacmanConfigurationException(
                     "Fixed fields are not currently supported")
         return application_field, application_field_spare_values
 
@@ -987,7 +980,6 @@ class VertexBasedRoutingInfoAllocator(object):
             bit_field_space.add_field(field, tags=example_entry.tag)
 
         for field_instance in fields[field]:
-
             # only carry on if there's more to create
             if fields[field][field_instance]:
 
@@ -1068,7 +1060,7 @@ class VertexBasedRoutingInfoAllocator(object):
         for routing_field in routing_fields:
             if routing_field.hi - routing_field.lo >= required_bits:
                 current_hi = routing_field.hi
-                while (current_hi - required_bits) > routing_field.lo:
+                while current_hi - required_bits > routing_field.lo:
                     yield (current_hi, current_hi - required_bits, field.value)
                     current_hi -= 1
 
@@ -1112,7 +1104,7 @@ class VertexBasedRoutingInfoAllocator(object):
             if first is None:
                 first = field_instance
             elif field_instance.tag != first.tag:
-                raise exceptions.PacmanConfigurationException(
+                raise PacmanConfigurationException(
                     "Two fields with the same id, but with different tags. "
                     "This is deemed an error and therefore please fix before"
                     "trying again. thanks you")
