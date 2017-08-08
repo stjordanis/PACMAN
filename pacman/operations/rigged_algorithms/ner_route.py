@@ -12,11 +12,10 @@ from collections import deque
 
 from pacman.operations.rigged_algorithms.geometry import \
     concentric_hexagons, to_xyz, shortest_mesh_path_length,\
-    shortest_mesh_path, shortest_torus_path_length, shortest_torus_path
+    shortest_mesh_path, shortest_torus_path_length, \
+    shortest_torus_path, longest_dimension_first
 
-from .utils import longest_dimension_first, links_between
-
-from ..exceptions import MachineHasDisconnectedSubregion
+from pacman.exceptions import PacmanRoutingException
 
 from ..constraints import RouteEndpointConstraint
 
@@ -225,7 +224,7 @@ def ner_net(source, destinations, width, height, wrap_around=False, radius=10):
             last_node.children.append((Routes(direction), this_node))
             last_node = this_node
 
-    return (route[source], route)
+    return route[source], route
 
 
 def copy_and_disconnect_tree(root, machine):
@@ -245,7 +244,7 @@ def copy_and_disconnect_tree(root, machine):
     root : :py:class:`~rig.place_and_route.routing_tree.RoutingTree`
         The root of the RoutingTree that contains nothing but RoutingTrees
         (i.e. no children which are vertices or links).
-    machine : :py:class:`~rig.place_and_route.Machine`
+    machine : :py:class:`SpiNNMachine.spinn_machine.machine.Machine`
         The machine in which the routes exist.
 
     Returns
@@ -289,9 +288,9 @@ def copy_and_disconnect_tree(root, machine):
         elif new_node is not new_parent:
             # If this node is not dead, check connectivity to parent node (no
             # reason to check connectivity between a dead node and its parent).
-            if direction in links_between(new_parent.chip,
-                                          new_node.chip,
-                                          machine):
+            if direction in machine.is_link_at(new_parent.chip,
+                                               new_node.chip,
+                                               machine):
                 # Is connected via working link
                 new_parent.children.append((direction, new_node))
             else:
@@ -339,7 +338,7 @@ def a_star(sink, heuristic_source, sources, machine, wrap_around):
 
     Raises
     ------
-    :py:class:~rig.place_and_route.exceptions.MachineHasDisconnectedSubregion`
+    :py:class:`pacman.exceptions.PacmanRoutingException`
         If a path cannot be found.
     """
     # Select the heuristic function to use for distances
@@ -395,8 +394,9 @@ def a_star(sink, heuristic_source, sources, machine, wrap_around):
 
     # Fail of no paths exist
     if selected_source is None:
-        raise MachineHasDisconnectedSubregion(
-            "Could not find path from {} to {}".format(
+        raise PacmanRoutingException(
+            "Machine has disconnected subregion: could not find path from \
+            {} to {}".format(
                 sink, heuristic_source))
 
     # Reconstruct the discovered path, starting from the source we found and
