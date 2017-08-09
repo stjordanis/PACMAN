@@ -17,7 +17,9 @@ from pacman.operations.rigged_algorithms.geometry import \
 
 from pacman.exceptions import PacmanRoutingException
 
-from ..constraints import RouteEndpointConstraint
+# possibly replace this with some other mechanism for handling \
+# i.e. FPGA links
+# from ..constraints import RouteEndpointConstraint
 
 from ..machine import Cores
 
@@ -532,15 +534,15 @@ def route(vertices_resources, nets, machine, constraints, placements,
     radius : int
         Radius of area to search from each node. 20 is arbitrarily selected in
         the paper and shown to be acceptable in practice. If set to zero, this
-        method is becomes longest dimension first routing.
+        method becomes longest dimension first routing.
     """
     wrap_around = machine.has_wrap_around_links()
 
     # Vertices constrained to route to a specific link. {vertex: route}
-    route_to_endpoint = {}
-    for constraint in constraints:
-        if isinstance(constraint, RouteEndpointConstraint):
-            route_to_endpoint[constraint.vertex] = constraint.route
+    # route_to_endpoint = {}
+    # for constraint in constraints:
+    #     if isinstance(constraint, RouteEndpointConstraint):
+    #         route_to_endpoint[constraint.vertex] = constraint.route
 
     routes = {}
     for net in nets:
@@ -557,21 +559,21 @@ def route(vertices_resources, nets, machine, constraints, placements,
         # Add the sinks in the net to the RoutingTree
         for sink in net.sinks:
             tree_node = lookup[placements[sink]]
-            if sink in route_to_endpoint:
-                # Sinks with route-to-endpoint constraints must be routed
-                # in the according directions.
-                tree_node.children.append((route_to_endpoint[sink], sink))
+            # if sink in route_to_endpoint:
+            #     # Sinks with route-to-endpoint constraints must be routed
+            #     # in the according directions.
+            #     tree_node.children.append((route_to_endpoint[sink], sink))
+            # else:
+            cores = allocations.get(sink, {}).get(core_resource, None)
+            if cores is not None:
+                # Sinks with the core_resource resource specified must be
+                # routed to that set of cores.
+                for core in range(cores.start, cores.stop):
+                    tree_node.children.append((Routes.core(core), sink))
             else:
-                cores = allocations.get(sink, {}).get(core_resource, None)
-                if cores is not None:
-                    # Sinks with the core_resource resource specified must be
-                    # routed to that set of cores.
-                    for core in range(cores.start, cores.stop):
-                        tree_node.children.append((Routes.core(core), sink))
-                else:
-                    # Sinks without that resource are simply included without
-                    # an associated route
-                    tree_node.children.append((None, sink))
+                # Sinks without that resource are simply included without
+                # an associated route
+                tree_node.children.append((None, sink))
         routes[net] = root
 
     return routes

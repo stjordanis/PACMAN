@@ -1,6 +1,8 @@
 """General-purpose SpiNNaker-related geometry functions.
 """
 
+from spinn_machine.machine import Machine as machine
+
 import random
 
 
@@ -235,6 +237,8 @@ def longest_dimension_first(vector, start=(0, 0), width=None, height=None):
     Note that when multiple dimensions are the same magnitude, one will be
     chosen at random with uniform probability.
 
+    Originally in rig.place_and_route.route.utils
+
     Parameters
     ----------
     vector : (x, y, z)
@@ -289,7 +293,8 @@ def longest_dimension_first(vector, start=(0, 0), width=None, height=None):
             if height is not None:
                 y %= height
 
-            direction = Links.from_vector((dx, dy))
+            # replaced Links.from_vector
+            direction = machine.LINK_ADD_TABLE((dx, dy))
 
             out.append((direction, (x, y)))
 
