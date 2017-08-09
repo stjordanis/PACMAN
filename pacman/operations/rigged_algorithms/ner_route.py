@@ -14,20 +14,23 @@ from pacman.operations.rigged_algorithms.geometry import \
     concentric_hexagons, to_xyz, shortest_mesh_path_length,\
     shortest_mesh_path, shortest_torus_path_length, \
     shortest_torus_path, longest_dimension_first
+from pacman.operations.rigged_algorithms.ner_routing_tree \
+    import RoutingTree
 
 from pacman.exceptions import PacmanRoutingException
 
 # possibly replace this with some other mechanism for handling \
 # i.e. FPGA links
 # from ..constraints import RouteEndpointConstraint
+# from ..constraints import RouteEndpointConstraint
 
-from ..machine import Cores
+from pacman.utilities.utility_objs import ResourceTracker
 
-from ...links import Links
+#from ..machine import Cores
 
-from ...routing_table import Routes
+#from ...links import Links
 
-from ..routing_tree import RoutingTree
+#from ...routing_table import Routes
 
 
 _concentric_hexagons = {}
@@ -515,7 +518,7 @@ def avoid_dead_links(root, machine, wrap_around=False):
 
     return (root, lookup)
 
-
+#TODO nets, vertices, cores, etc (resourcetracker)
 def route(vertices_resources, nets, machine, constraints, placements,
           allocations={}, core_resource=Cores, radius=20):
     """Routing algorithm based on Neighbour Exploring Routing (NER).
