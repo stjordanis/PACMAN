@@ -22,7 +22,6 @@ from pacman.exceptions import PacmanRoutingException
 # possibly replace this with some other mechanism for handling \
 # i.e. FPGA links
 # from ..constraints import RouteEndpointConstraint
-# from ..constraints import RouteEndpointConstraint
 
 from pacman.utilities.utility_objs import ResourceTracker
 
@@ -226,6 +225,7 @@ def ner_net(source, destinations, width, height, wrap_around=False, radius=10):
             this_node = RoutingTree((x, y))
             route[(x, y)] = this_node
 
+            # replace Routes(direction)
             last_node.children.append((Routes(direction), this_node))
             last_node = this_node
 
@@ -520,10 +520,10 @@ def avoid_dead_links(root, machine, wrap_around=False):
 
 #TODO nets, vertices, cores, etc (resourcetracker)
 def route(vertices_resources, nets, machine, constraints, placements,
-          allocations={}, core_resource=Cores, radius=20):
+          allocations={}, core_resource=None, radius=20):
     """Routing algorithm based on Neighbour Exploring Routing (NER).
 
-    Algorithm refrence: J. Navaridas et al. SpiNNaker: Enhanced multicast
+    Algorithm reference: J. Navaridas et al. SpiNNaker: Enhanced multicast
     routing, Parallel Computing (2014).
     http://dx.doi.org/10.1016/j.parco.2015.01.002
 
