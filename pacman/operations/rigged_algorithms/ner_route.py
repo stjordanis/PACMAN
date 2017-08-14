@@ -25,6 +25,10 @@ class NerRoute(object):
     def disconnect_external_devices(self, machine, machine_graph):
         external_device_chip = object
 
+        # placement find fpga vertex
+        # chip find router find link that is active
+        # real chip is destination of link
+        # make a distinction between ingoing and outgoing connections
         for vertex in machine_graph.vertices:
             if isinstance (vertex, AbstractVirtualVertex):
                 link_data = None
