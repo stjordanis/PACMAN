@@ -8,3 +8,8 @@ class NerRoute(object):
 
     `http://dx.doi.org/10.1016/j.parco.2015.01.002`
     """
+
+    # determine if the system has wrap-around links
+    def has_wrap_around_links(self, machine):
+        (cores, links) = machine.get_cores_and_link_count
+        if cores
