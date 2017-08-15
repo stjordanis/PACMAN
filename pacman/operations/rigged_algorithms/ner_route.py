@@ -22,24 +22,33 @@ class NerRoute(object):
 
         wrap_around = machine.has_wrap_arounds()
 
-    def disconnect_external_devices(self, machine, machine_graph):
+    def disconnect_external_devices(self, placements, chip, machine):
         external_device_chip = object
 
         # placement find fpga vertex
         # chip find router find link that is active
         # real chip is destination of link
         # make a distinction between ingoing and outgoing connections
-        for vertex in machine_graph.vertices:
+        for vertex in placements:
             if isinstance (vertex, AbstractVirtualVertex):
-                link_data = None
+                virtual_chip_placement = None
                 if isinstance (vertex, AbstractFPGAVertex):
-                    link_data = machine.get_fpga_link_with_id(
-                        vertex.board_address, vertex.fpga_id,
-                        vertex.fpga_link_id
-                    )
+                    virtual_chip_placement = \
+                        placements.get_placement_of_vertex()
                 elif isinstance (vertex, AbstractSpiNNakerLinkVertex):
-                    link_data = machine.get_spinnaker_link_with_id(
-                        vertex.spinnaker_link_id, vertex.board_address
-                    )
-                # force the routing tree to route to the nearest connected chip
+                    virtual_chip_placement = \
+                        placements.get_placement_of_vertex()
+
+                # iterable
+                chip_links = chip.router.links(virtual_chip_placement.x,
+                                              virtual_chip_placement.y)
+
+        # force the routing tree to route to the nearest connected chip
+
+    def generate_routing_tree(self):
+        # called for each partition
+
+    def route_has_dead_links(self):
+
+    def reroute_dead_links(self):
 
