@@ -206,7 +206,7 @@ def shortest_torus_path(source, destination, width, height):
         y -= d
         z -= d
 
-    return (x, y, z)
+    return x, y, z
 
 
 def concentric_hexagons(radius, start=(0, 0)):
@@ -348,6 +348,7 @@ class Routes(IntEnum):
     core_15 = 21
     core_16 = 22
     core_17 = 23
+
 
 class Links(IntEnum):
     """Enumeration of links from a SpiNNaker chip.

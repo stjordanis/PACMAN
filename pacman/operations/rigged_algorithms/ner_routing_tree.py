@@ -67,7 +67,7 @@ class RoutingTree(object):
 
     @property
     def chip(self):
-        return (self._chip_x, self._chip_y)
+        return self._chip_x, self._chip_y
 
     @chip.setter
     def chip(self, chip):
