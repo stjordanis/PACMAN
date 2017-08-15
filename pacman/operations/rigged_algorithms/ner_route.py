@@ -1,7 +1,12 @@
 from pacman.model.graphs import AbstractFPGAVertex, AbstractVirtualVertex, \
     AbstractSpiNNakerLinkVertex
 from pacman.operations.rigged_algorithms.ner_routing_tree import RoutingTree
-from pacman.operations.rigged_algorithms import geometry
+from pacman.operations.rigged_algorithms.geometry import \
+    shortest_mesh_path_length, shortest_torus_path_length, \
+    shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
+    Routes
+
+
 
 class NerRoute(object):
     """Neighbour Exploring Routing (NER) algorithm from J. Navaridas et al.
@@ -167,14 +172,14 @@ class NerRoute(object):
                 neighbor_distance = None
                 for candidate_neighbor in route:
                     if wrap_around:
-                        distance = geometry.shortest_torus_path_length(
-                            geometry.to_xyz(candidate_neighbor),
-                            geometry.to_xyz(destination), width, height
+                        distance = shortest_torus_path_length(
+                            to_xyz(candidate_neighbor),
+                            to_xyz(destination), width, height
                         )
                     else:
-                        distance = geometry.shortest_mesh_path_length(
-                            geometry.to_xyz(candidate_neighbor),
-                            geometry.to_xyz(destination)
+                        distance = shortest_mesh_path_length(
+                            to_xyz(candidate_neighbor),
+                            to_xyz(destination)
                         )
                     if distance <= radius and (neighbor is None or
                                                distance < neighbor_distance):
@@ -188,12 +193,12 @@ class NerRoute(object):
 
             # Find the shortest vector from the neighbor to the destination
             if wrap_around:
-                vector = geometry.shortest_torus_path(
-                    geometry.to_xyz(neighbor), geometry.to_xyz(destination),
+                vector = shortest_torus_path(
+                    to_xyz(neighbor), to_xyz(destination),
                     width, height)
             else:
-                vector = geometry.shortest_mesh_path(
-                    geometry.to_xyz(neighbor), geometry.to_xyz(destination))
+                vector = shortest_mesh_path(
+                    to_xyz(neighbor), to_xyz(destination))
 
             # The longest-dimension-first route may inadvertently pass through
             # an already connected node. If the route is allowed to pass
@@ -201,7 +206,33 @@ class NerRoute(object):
             # would be VeryBad(TM). As a result, we work backward through the
             # route and truncate it at the first point where the route
             # intersects with a connected node.
+            ldf = longest_dimension_first(vector, neighbor, width,
+                                                   height)
+            i = len(ldf)
+            for direction, (x, y) in reversed(ldf):
+                i -= 1
+                if (x, y) in route:
+                    # We've just bumped into a node which is already part of
+                    # the route, this becomes our new neighbor and we truncate
+                    # the LDF route. (Note ldf list is truncated just after
+                    # the current position since it gives (direction,
+                    # destination) pairs).
+                    neighbor = (x, y)
+                    ldf = ldf[i + 1:]
+                    break
 
+            # Take the longest dimension first route (i.e. traverse first
+            # in the direction (x, y, w) with the greatest change in respect
+            # to the source).
+            last_node = route[neighbor]
+            for direction, (x, y) in ldf:
+                this_node = RoutingTree((x, y))
+                route[(x, y)] = this_node
+
+            # Add the route just generated to the list of children
+                last_node.children.append((Routes(direction),
+                                           this_node))
+                last_node = this_node
 
     def route_has_dead_links(self):
 

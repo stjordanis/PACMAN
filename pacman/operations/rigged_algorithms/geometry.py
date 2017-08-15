@@ -4,7 +4,7 @@
 from spinn_machine.machine import Machine as machine
 
 import random
-from enum import IntEnum
+from enum import Enum
 
 
 def to_xyz(xy):
@@ -302,7 +302,7 @@ def longest_dimension_first(vector, start=(0, 0), width=None, height=None):
     return out
 
 
-class Routes(IntEnum):
+class Routes(Enum):
     """Enumeration of routes which a SpiNNaker packet can take after arriving
     at a router.
 
@@ -350,7 +350,7 @@ class Routes(IntEnum):
     core_17 = 23
 
 
-class Links(IntEnum):
+class Links(Enum):
     """Enumeration of links from a SpiNNaker chip.
 
     Note that the numbers chosen have two useful properties:
