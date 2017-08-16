@@ -77,7 +77,6 @@ class NerRoute(object):
 
         # called for each partition
         route = {source: RoutingTree(source)}
-        wrap_around = machine.has_wrap_arounds()
 
         # Handle each destination, sorted by distance from the source,
         # closest first.
@@ -88,7 +87,7 @@ class NerRoute(object):
                                            to_xyz(
                                                destination_distance)
                                        )
-                                       if not wrap_around else
+                                       if not machine.has_wrap_arounds else
                                        shortest_torus_path_length(
                                            to_xyz(source),
                                            to_xyz(
@@ -164,7 +163,7 @@ class NerRoute(object):
                 for x, y in hexagons:
                     x += destination[0]
                     y += destination[1]
-                    if wrap_around:
+                    if machine.has_wrap_arounds:
                         x %= width
                         y %= height
                     if (x, y) in route:
@@ -176,7 +175,7 @@ class NerRoute(object):
                 neighbor = None
                 neighbor_distance = None
                 for candidate_neighbor in route:
-                    if wrap_around:
+                    if machine.has_wrap_arounds:
                         distance = shortest_torus_path_length(
                             to_xyz(candidate_neighbor),
                             to_xyz(destination), width, height
@@ -197,7 +196,7 @@ class NerRoute(object):
                 neighbor = source
 
             # Find the shortest vector from the neighbor to the destination
-            if wrap_around:
+            if machine.has_wrap_arounds:
                 vector = shortest_torus_path(
                     to_xyz(neighbor), to_xyz(destination),
                     width, height)
@@ -245,4 +244,10 @@ class NerRoute(object):
         if machine.has_wrap_arounds:
             heuristic = (lambda node:
                          shortest_torus_path_length(to_xyz(node),
-                                                    to_xyz(heuristic_source)))
+                                                    to_xyz(heuristic_source),
+                                                    machine.max_chip_x,
+                                                    machine.max_chip_y))
+        else:
+            heuristic = (lambda node:
+                         shortest_mesh_path_length(to_xyz(node),
+                                                   to_xyz(heuristic_source)))
