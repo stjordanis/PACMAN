@@ -4,7 +4,7 @@ from pacman.operations.rigged_algorithms.ner_routing_tree import RoutingTree
 from pacman.operations.rigged_algorithms.geometry import \
     shortest_mesh_path_length, shortest_torus_path_length, \
     shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
-    Routes
+    concentric_hexagons, Routes
 
 
 
@@ -47,14 +47,19 @@ class NerRoute(object):
                     virtual_chip_placement = \
                         placements.get_placement_of_vertex()
 
-                # iterable
+                # does something need to be done here to verify that
+                # there is only one link?
                 chip_links = chip.router.links(virtual_chip_placement.x,
                                               virtual_chip_placement.y)
+
+                machine.get_chip_over_link(virtual_chip_placement.x,
+                                           virtual_chip_placement.y,
+                                           chip_links)
 
         # force the routing tree to route to the nearest connected chip
 
     def generate_routing_tree(self, source, destinations, machine, width,
-                              height, radius):
+                              height, radius=10):
         """Produce a shortest path tree for a given partition using NER.
         A RoutingTree is produced rooted at the source and visiting all
         destinations but which does not contain any vertices etc.
@@ -78,15 +83,15 @@ class NerRoute(object):
         # closest first.
         for destination in sorted(destinations,
                                   key=(lambda destination_distance:
-                                       geometry.shortest_mesh_path_length(
-                                           geometry.to_xyz(source),
-                                           geometry.to_xyz(
+                                       shortest_mesh_path_length(
+                                           to_xyz(source),
+                                           to_xyz(
                                                destination_distance)
                                        )
                                        if not wrap_around else
-                                       geometry.shortest_torus_path_length(
-                                           geometry.to_xyz(source),
-                                           geometry.to_xyz(
+                                       shortest_torus_path_length(
+                                           to_xyz(source),
+                                           to_xyz(
                                                destination_distance),
                                            width, height
                                        ))):
@@ -152,11 +157,11 @@ class NerRoute(object):
             # route nodes is more than 1/3rd of the number of routes checked
             # by the original method.
 
-            concentric_hexagons = geometry.concentric_hexagons(radius)
-            if len(concentric_hexagons) < len(route) / 3:
+            hexagons = concentric_hexagons(radius)
+            if len(hexagons) < len(route) / 3:
                 # Original approach: Start looking for route nodes in a
                 # concentric spiral pattern out from the destination node.
-                for x, y in concentric_hexagons:
+                for x, y in hexagons:
                     x += destination[0]
                     y += destination[1]
                     if wrap_around:
@@ -234,7 +239,10 @@ class NerRoute(object):
                                            this_node))
                 last_node = this_node
 
-    def route_has_dead_links(self):
+        return route[source], route
 
-    def reroute_dead_links(self):
-
+    def a_star(self, machine, heuristic_source):
+        if machine.has_wrap_arounds:
+            heuristic = (lambda node:
+                         shortest_torus_path_length(to_xyz(node),
+                                                    to_xyz(heuristic_source)))
