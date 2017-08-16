@@ -240,7 +240,7 @@ class NerRoute(object):
 
         return route[source], route
 
-    def a_star(self, machine, heuristic_source):
+    def a_star(self, machine, heuristic_source, sink):
         if machine.has_wrap_arounds:
             heuristic = (lambda node:
                          shortest_torus_path_length(to_xyz(node),
@@ -251,3 +251,14 @@ class NerRoute(object):
             heuristic = (lambda node:
                          shortest_mesh_path_length(to_xyz(node),
                                                    to_xyz(heuristic_source)))
+
+        # A dictionary {node: (direction, previous_node)}. An entry indicates
+        # that 1) the node has been visited and 2) which node we hopped from
+        # (and the direction used) to reach previous_node.  This may be None
+        # if the node is the sink.
+        visited = {sink: None}
+
+        # The node to which the tree will be reconnected
+        selected_source = None
+
+
