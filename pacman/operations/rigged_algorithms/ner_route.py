@@ -6,6 +6,7 @@ from pacman.operations.rigged_algorithms.geometry import \
     shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
     concentric_hexagons, Routes
 
+import heapq
 
 
 class NerRoute(object):
@@ -240,7 +241,7 @@ class NerRoute(object):
 
         return route[source], route
 
-    def a_star(self, machine, heuristic_source, sink):
+    def a_star(self, machine, heuristic_source, sink, sources, chip, link):
         if machine.has_wrap_arounds:
             heuristic = (lambda node:
                          shortest_torus_path_length(to_xyz(node),
@@ -261,4 +262,20 @@ class NerRoute(object):
         # The node to which the tree will be reconnected
         selected_source = None
 
+        # A heap (accessed vis heapq) of (distance, (x, y)) where distance is
+        # the distance between (x, y) and heuristic_source and (x, y) is a
+        # node to explore.
+        to_visit = [(heuristic(sink), sink)]
+        while to_visit:
+            _, node = heapq.heappop(to_visit)
 
+            # Terminate if we've found the destination
+            if node in sources:
+                selected_source = node
+                break
+
+            # Try all neighboring locations. Note: link identifiers are
+            # from the perspective of the neighbor, not the current node!
+            for neighbor_link in chip.router.links:
+                # this is a link id (int)
+                vector = link.multicast_default_to(neighbor_link)
