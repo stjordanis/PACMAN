@@ -4,7 +4,11 @@ from pacman.operations.rigged_algorithms.ner_routing_tree import RoutingTree
 from pacman.operations.rigged_algorithms.geometry import \
     shortest_mesh_path_length, shortest_torus_path_length, \
     shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
-    concentric_hexagons, Routes
+    concentric_hexagons
+
+from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
+from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
+    import Routes
 
 import heapq
 
@@ -262,9 +266,10 @@ class NerRoute(object):
         # The node to which the tree will be reconnected
         selected_source = None
 
-        # A heap (accessed vis heapq) of (distance, (x, y)) where distance is
+        # A heap (accessed via heapq) of (distance, (x, y)) where distance is
         # the distance between (x, y) and heuristic_source and (x, y) is a
-        # node to explore.
+        # node to explore. Takes the node with the shortest distance to the
+        # destination.
         to_visit = [(heuristic(sink), sink)]
         while to_visit:
             _, node = heapq.heappop(to_visit)
@@ -278,4 +283,6 @@ class NerRoute(object):
             # from the perspective of the neighbor, not the current node!
             for neighbor_link in chip.router.links:
                 # this is a link id (int)
-                vector = link.multicast_default_to(neighbor_link)
+                vector = neighbor_link.opposite.to_vector()
+                neighbor = ((node[0] + vector[0]) % machine.max_chip_x,
+                            (node[1] + vector[1]) % machine.max_chip_y)
