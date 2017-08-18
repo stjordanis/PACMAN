@@ -22,7 +22,6 @@ class NerRoute(object):
     `http://dx.doi.org/10.1016/j.parco.2015.01.002`
     """
 
-    # determine if the system has wrap-around links
     def __call__(self, placements, machine, machine_graph):
         """
 
@@ -31,8 +30,6 @@ class NerRoute(object):
         :param machine_graph:
         :return:
         """
-
-
 
     def disconnect_external_devices(self, placements, chip, machine):
         external_device_chip = object
@@ -43,19 +40,19 @@ class NerRoute(object):
         # make a distinction between ingoing and outgoing connections
         #   -perhaps not as this may be out of my scope
         for vertex in placements:
-            if isinstance (vertex, AbstractVirtualVertex):
+            if isinstance(vertex, AbstractVirtualVertex):
                 virtual_chip_placement = None
-                if isinstance (vertex, AbstractFPGAVertex):
+                if isinstance(vertex, AbstractFPGAVertex):
                     virtual_chip_placement = \
                         placements.get_placement_of_vertex()
-                elif isinstance (vertex, AbstractSpiNNakerLinkVertex):
+                elif isinstance(vertex, AbstractSpiNNakerLinkVertex):
                     virtual_chip_placement = \
                         placements.get_placement_of_vertex()
 
                 # does something need to be done here to verify that
                 # there is only one link?
                 chip_links = chip.router.links(virtual_chip_placement.x,
-                                              virtual_chip_placement.y)
+                                               virtual_chip_placement.y)
 
                 machine.get_chip_over_link(virtual_chip_placement.x,
                                            virtual_chip_placement.y,
