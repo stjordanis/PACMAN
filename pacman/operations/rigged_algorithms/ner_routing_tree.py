@@ -33,7 +33,7 @@ class RoutingTree(object):
         `None`. If :py:class:`~rig.routing_table.Routes` then this indicates
         the next step in the route uses a particular route.
 
-        The object indicates the intended destination of this step in the
+        The object indicates the intended destination of this step in thef
         route. It may be one of:
 
         * :py:class:`~.rig.place_and_route.routing_tree.RoutingTree`

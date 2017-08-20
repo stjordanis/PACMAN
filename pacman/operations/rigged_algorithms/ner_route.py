@@ -5,7 +5,7 @@ from pacman.operations.rigged_algorithms.geometry import \
     shortest_mesh_path_length, shortest_torus_path_length, \
     shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
     concentric_hexagons
-
+from pacman.exceptions import PacmanRoutingException
 from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
 from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
     import Routes
@@ -283,3 +283,23 @@ class NerRoute(object):
                 vector = neighbor_link.opposite.to_vector()
                 neighbor = ((node[0] + vector[0]) % machine.max_chip_x,
                             (node[1] + vector[1]) % machine.max_chip_y)
+
+                # Skip links which are broken
+                if (neighbor[0], neighbor[1], neighbor_link) not in link:
+                    continue
+
+                # Skip neighbors which have already been visited
+                if neighbor in visited:
+                    continue
+
+                # Explore all other neighbors
+                visited[neighbor] = (neighbor_link, node)
+                heapq.heappush(to_visit, (heuristic(neighbor), neighbor))
+
+        # Fail if no paths exist
+        if selected_source is None:
+            raise PacmanRoutingException("Could not find path from {} "
+                                         "to {}".format(
+                                         sink, heuristic_source))
+
+
