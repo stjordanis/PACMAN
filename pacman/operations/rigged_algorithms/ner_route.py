@@ -84,17 +84,11 @@ class NerRoute(object):
         # closest first.
         for destination in sorted(destinations,
                                   key=(lambda destination_distance:
-                                       shortest_mesh_path_length(
-                                           to_xyz(source),
-                                           to_xyz(
-                                               destination_distance)
-                                       )
-                                       if not machine.has_wrap_arounds else
-                                       shortest_torus_path_length(
+                                       self.shortest_path_length(
                                            to_xyz(source),
                                            to_xyz(
                                                destination_distance),
-                                           width, height
+                                           machine, width, height
                                        ))):
             # Attempt to find the nearest neighboring placed node.
             neighbor = None
@@ -177,16 +171,10 @@ class NerRoute(object):
                 neighbor = None
                 neighbor_distance = None
                 for candidate_neighbor in route:
-                    if machine.has_wrap_arounds:
-                        distance = shortest_torus_path_length(
-                            to_xyz(candidate_neighbor),
-                            to_xyz(destination), width, height
-                        )
-                    else:
-                        distance = shortest_mesh_path_length(
-                            to_xyz(candidate_neighbor),
-                            to_xyz(destination)
-                        )
+                    distance = self.shortest_path_length(
+                        to_xyz(candidate_neighbor),
+                        to_xyz(destination), machine, width, height
+                    )
                     if distance <= radius and (neighbor is None or
                                                distance < neighbor_distance):
                         neighbor = candidate_neighbor
@@ -198,13 +186,9 @@ class NerRoute(object):
                 neighbor = source
 
             # Find the shortest vector from the neighbor to the destination
-            if machine.has_wrap_arounds:
-                vector = shortest_torus_path(
-                    to_xyz(neighbor), to_xyz(destination),
-                    width, height)
-            else:
-                vector = shortest_mesh_path(
-                    to_xyz(neighbor), to_xyz(destination))
+            vector = self.shortest_path(
+                to_xyz(neighbor), to_xyz(destination),
+                machine, width, height)
 
             # The longest-dimension-first route may inadvertently pass through
             # an already connected node. If the route is allowed to pass
@@ -212,8 +196,7 @@ class NerRoute(object):
             # would be VeryBad(TM). As a result, we work backward through the
             # route and truncate it at the first point where the route
             # intersects with a connected node.
-            ldf = longest_dimension_first(vector, neighbor, width,
-                                                   height)
+            ldf = longest_dimension_first(vector, neighbor, width, height)
             i = len(ldf)
             for direction, (x, y) in reversed(ldf):
                 i -= 1
@@ -299,7 +282,51 @@ class NerRoute(object):
         # Fail if no paths exist
         if selected_source is None:
             raise PacmanRoutingException("Could not find path from {} "
-                                         "to {}".format(
-                                         sink, heuristic_source))
+                                         "to {}".format(sink,
+                                                        heuristic_source))
 
+        # Reconstruct the discovered path, starting from the source found
+        # and working back to the sink
+        path = [(Routes(visited[selected_source][0]), selected_source)]
+        while visited[path[-1][1]][1] != sink:
+            node = visited[path[-1][1]][1]
+            direction = Routes(visited[node][0])
+            path.append((direction, node))
+
+        return path
+
+    def route_has_dead_links(self, root, link):
+        """Determine if a route uses any dead links.
+
+        :param root: The root of the RoutingTree which contains nothing but
+            RoutingTrees (i.e. no vertices and no links)
+        :type root: \
+            :py:class:`pacman.operations.rigged_algorithms.ner_routing_tree`
+        :param link: a link in a spinnaker machine
+        :return: link:
+            :py:class:`spinn_machine.link`
+        """
+
+        for direction, (x, y), routes in root.traverse():
+            for route in routes:
+                if (x, y, route) not in link:
+                    return True
+        return False
+
+    def shortest_path_length(self, source, destination, machine=None,
+                             width=0, height=0):
+        if machine.has_wrap_arounds:
+            return shortest_torus_path_length(source, destination, width,
+                                              height)
+        else:
+            return shortest_mesh_path_length(source, destination)
+
+    def shortest_path(self, source, destination, machine=None, width=0,
+                      height=0):
+        if machine.has_wrap_arounds:
+            return shortest_torus_path(source, destination, width, height)
+        else:
+            return shortest_mesh_path(source, destination)
+
+    def avoid_dead_links(self):
 

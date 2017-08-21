@@ -103,6 +103,7 @@ class RoutingTree(object):
             Direction taken to reach a Node in the tree, the (x, y) co-ordinate
             of that Node and routes leading to children of the Node.
         """
+
         # A queue of (direction, node) to visit. The direction is the Links
         # entry which describes the direction in which we last moved to reach
         # the node (or None for the root).
