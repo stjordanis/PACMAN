@@ -9,6 +9,7 @@ from pacman.exceptions import PacmanRoutingException
 from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
 from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
     import Routes
+from pacman.model.placements import Placement
 
 import heapq
 from collections import deque
@@ -34,13 +35,14 @@ class NerRoute(object):
 
         # disconnect external devices
         # generate routing tree, assuming perfect machine
+
+
         # check for broken or dead links
         # replace dead links
         # add vertices to routing tree
         # reconnect and route to external devices
 
     def disconnect_external_devices(self, placements, chip, machine):
-        external_device_chip = object
 
         # placement find fpga vertex
         # chip find router find link that is active
@@ -57,14 +59,22 @@ class NerRoute(object):
                     virtual_chip_placement = \
                         placements.get_placement_of_vertex()
 
+                # Get the link connecting the virtual chip to a chip on the
+                # board
                 # does something need to be done here to verify that
                 # there is only one link?
-                chip_links = chip.router.links(virtual_chip_placement.x,
-                                               virtual_chip_placement.y)
+                chip_link = chip.router.links(virtual_chip_placement.x,
+                                              virtual_chip_placement.y)
 
-                machine.get_chip_over_link(virtual_chip_placement.x,
-                                           virtual_chip_placement.y,
-                                           chip_links)
+                # This is the chip to which we shall temporarily route
+                redirect_to_chip = machine.get_chip_over_link(
+                    virtual_chip_placement.x, virtual_chip_placement.y,
+                    chip_link)
+
+                # Create a virtual placement for the algorithm to route to
+                virtual_placement = Placement(vertex, redirect_to_chip[0],
+                                              redirect_to_chip[1], None)
+
 
         # force the routing tree to route to the nearest connected chip
 
@@ -336,7 +346,7 @@ class NerRoute(object):
         else:
             return shortest_mesh_path(source, destination)
 
-    def copy_and_disconnect_tree(self, root, machine):
+    def copy_and_disconnect_tree(self, root, machine, chip):
         # try to find a better way to do this
         new_root = None
 
@@ -359,4 +369,85 @@ class NerRoute(object):
             else:
                 # This chip is dead, move all its children into the parent
                 # node
+                assert new_parent is not None, "Multicast route cannot be" \
+                                               "sourced from a dead chip."
+                new_node = new_parent
 
+            if new_parent is None:
+                # This is the root node
+                new_root = new_node
+            elif new_node is not new_parent:
+                # If this node is not dead, check connectivity to parent node
+                # (no reason to check connectivity between a dead node and its
+                # parent).
+                if direction in chip.router.links(
+                        new_parent.chip[0], new_parent.chip[1], direction,
+                        new_node.chip[0], new_node.chip[1]):
+                    # Is connected via working link
+                    new_parent.children.append((direction, new_node))
+                else:
+                    # Link to parent is dead (or original parent was dead
+                    # and the new parent is not adjacent
+                    broken_links.add((new_parent.chip, new_node.chip))
+
+            # Copy children
+            for child_direction, child in old_node.children:
+                to_visit.append((new_node, child_direction, child))
+
+        return new_root, new_lookup, broken_links
+
+    def avoid_dead_links(self, root, machine, chip, link):
+        # Again, not necessary if copy and disconnect tree is changed
+
+        # Make a copy of the RoutingTree with all broken parts disconnected
+        root, lookup, broken_links = self.copy_and_disconnect_tree(
+            root, machine, chip)
+
+        # For each disconnected subtree, use A* to connect the tree to
+        # *any* other disconnected subtree. Note that this process will
+        # eventually result in all disconnected subtrees being connected,
+        # the result is a fully connected tree.
+        for parent, child in broken_links:
+            child_chips = set(c.chip for c in lookup[child])
+
+            # Try to reconnect broken links to any other part of the tree
+            # (excluding this broken subtree itself since that would create
+            # a cycle).
+            path = self.a_star(machine, child, parent,
+                               set(lookup).difference(child_chips),
+                               chip, link)
+
+            # Add new RoutingTree nodes to reconnect the child to the tree.
+            last_node = lookup[path[0][1]]
+            last_direction = path[0][0]
+            for direction, (x, y) in path[1:]:
+                if (x, y) not in child_chips:
+                    # This path segment traverses new ground so we must create
+                    # a new RoutingTree for the segment.
+                    new_node = RoutingTree((x, y))
+                    # A* will not traverse anything but chips in this tree so
+                    # this assert is merely a sanity check that this occurred
+                    # correctly.
+                    assert (x, y) not in lookup, "Cycle created."
+                    lookup[(x, y)] = new_node
+                else:
+                    # This path segment overlaps part of the disconnected tree
+                    new_node = lookup[(x, y)]
+
+                    # Find the node's current parent and disconnect it
+                    for node in lookup[child]:
+                        directional_link = [(_direction, _node) for
+                                            _direction, _node in node.children
+                                            if _node == new_node]
+                        assert len(directional_link) <= 1
+                        if directional_link:
+                            node.children.remove(directional_link[0])
+                            # A node can only have one parent, can stop
+                            break
+
+                last_node.children.append((Routes(last_direction), new_node))
+                last_node = new_node
+                last_direction = direction
+            last_node.children.append((last_direction, lookup[child]))
+
+        return root, lookup
