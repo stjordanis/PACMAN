@@ -11,6 +11,7 @@ from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
     import Routes
 
 import heapq
+from collections import deque
 
 
 class NerRoute(object):
@@ -30,6 +31,13 @@ class NerRoute(object):
         :param machine_graph:
         :return:
         """
+
+        # disconnect external devices
+        # generate routing tree, assuming perfect machine
+        # check for broken or dead links
+        # replace dead links
+        # add vertices to routing tree
+        # reconnect and route to external devices
 
     def disconnect_external_devices(self, placements, chip, machine):
         external_device_chip = object
@@ -328,5 +336,27 @@ class NerRoute(object):
         else:
             return shortest_mesh_path(source, destination)
 
-    def avoid_dead_links(self):
+    def copy_and_disconnect_tree(self, root, machine):
+        # try to find a better way to do this
+        new_root = None
+
+        # Lookup for copied routing tree {(x, y): RoutingTree, ...}
+        new_lookup = {}
+
+        # List of missing connections in the copied routing tree
+        # [(new_parent, new_child), ...]
+        broken_links = set()
+
+        # A queue [(new_parent, direction, old_node), ...]
+        to_visit = deque([None, None, root])
+        while to_visit:
+            new_parent, direction, old_node = to_visit.popleft()
+
+            if machine.is_chip_at(old_node.chip):
+                # Create a copy of the node
+                new_node = RoutingTree(old_node.chip)
+                new_lookup[new_node.chip] = new_node
+            else:
+                # This chip is dead, move all its children into the parent
+                # node
 
