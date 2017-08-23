@@ -1,15 +1,19 @@
 from pacman.model.graphs import AbstractFPGAVertex, AbstractVirtualVertex, \
     AbstractSpiNNakerLinkVertex
 from pacman.operations.rigged_algorithms.ner_routing_tree import RoutingTree
-from pacman.operations.rigged_algorithms.geometry import \
-    shortest_mesh_path_length, shortest_torus_path_length, \
-    shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
-    concentric_hexagons
+from pacman.operations.rigged_algorithms.geometry import *
+#     shortest_mesh_path_length, shortest_torus_path_length, \
+#     shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
+#     concentric_hexagons
 from pacman.exceptions import PacmanRoutingException
 from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
 from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
     import Routes
 from pacman.model.placements import Placement
+from pacman.model.routing_table_by_partition.multicast_routing_table_by_partition\
+    import MulticastRoutingTableByPartition
+
+from spinn_utilities.progress_bar import ProgressBar
 
 import heapq
 from collections import deque
@@ -18,7 +22,7 @@ from collections import deque
 class NerRoute(object):
     """Neighbour Exploring Routing (NER) algorithm from J. Navaridas et al.
 
-    Algorithm refrence: J. Navaridas et al. SpiNNaker: Enhanced multicast routing,
+    Algorithm reference: J. Navaridas et al. SpiNNaker: Enhanced multicast routing,
     Parallel Computing (2014).
 
     `http://dx.doi.org/10.1016/j.parco.2015.01.002`
@@ -35,12 +39,20 @@ class NerRoute(object):
 
         # disconnect external devices
         # generate routing tree, assuming perfect machine
+            # get partitions
 
+        progress = ProgressBar(machine_graph.n_outgoing_edge_partitions,
+                               "Creating routing entries")
 
+        routing_tables = MulticastRoutingTableByPartition()
+        all_edges_routed = set()
+        machine_graph.get_edges_starting_at_vertex()
         # check for broken or dead links
         # replace dead links
         # add vertices to routing tree
         # reconnect and route to external devices
+
+        return routing_tables
 
     def disconnect_external_devices(self, placements, chip, machine):
 
@@ -78,8 +90,7 @@ class NerRoute(object):
 
         # force the routing tree to route to the nearest connected chip
 
-    def generate_routing_tree(self, source, destinations, machine, width,
-                              height, radius=10):
+    def generate_routing_tree(self, source, destinations, machine, radius=10):
         """Produce a shortest path tree for a given partition using NER.
         A RoutingTree is produced rooted at the source and visiting all
         destinations but which does not contain any vertices etc.
@@ -89,14 +100,14 @@ class NerRoute(object):
         :param source:
         :param destinations:
         :param machine:
-        :param width:
-        :param height:
         :param radius:
         :return:
         """
 
         # called for each partition
         route = {source: RoutingTree(source)}
+        width = machine.max_chip_x
+        height = machine.max_chip_y
 
         # Handle each destination, sorted by distance from the source,
         # closest first.
@@ -451,3 +462,6 @@ class NerRoute(object):
             last_node.children.append((last_direction, lookup[child]))
 
         return root, lookup
+
+    def add_sinks(self):
+        # Add sinks to the RoutingTree
