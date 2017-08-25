@@ -428,8 +428,7 @@ class NerRoute(object):
 
     def copy_and_disconnect_tree(self, root, machine):
         # try to find a better way to do this
-        width = machine.max_chip_x
-        height = machine.max_chip_y
+
         new_root = None
 
         # Lookup for copied routing tree {(x, y): RoutingTree, ...}
@@ -440,7 +439,7 @@ class NerRoute(object):
         broken_links = set()
 
         # A queue [(new_parent, direction, old_node), ...]
-        to_visit = deque([None, None, root])
+        to_visit = deque([(None, None, root)])
         while to_visit:
             new_parent, direction, old_node = to_visit.popleft()
 

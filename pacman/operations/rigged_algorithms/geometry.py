@@ -298,7 +298,7 @@ def longest_dimension_first(vector, start=(0, 0), width=None, height=None):
             if height is not None:
                 y %= height
 
-            direction = Links.from_vector
+            direction = Links.from_vector((dx, dy))
 
             out.append((direction, (x, y)))
 
