@@ -6,9 +6,9 @@ from pacman.exceptions import PacmanRoutingException
 from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
 from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
     import Routes
-from pacman.model.placements import Placement
-from pacman.model.routing_table_by_partition.multicast_routing_table_by_partition\
-    import MulticastRoutingTableByPartition
+from pacman.model.routing_table_by_partition \
+    import MulticastRoutingTableByPartition, \
+    MulticastRoutingTableByPartitionEntry
 
 from spinn_utilities.progress_bar import ProgressBar
 
@@ -46,8 +46,6 @@ class NerRoute(object):
                 vertex, placements, machine)
 
         # route
-            # is it possible to have outgoing multicast traffic from a
-            # virtual device?
             partitions = \
                 machine_graph.get_outgoing_edge_partitions_starting_at_vertex(
                     vertex)
@@ -60,9 +58,9 @@ class NerRoute(object):
 
                 # set of destination placements for the sinks of the tree
                 sink_placements = set()
-                for sink in sink_vertices:
+                for sink_vertex in sink_vertices:
                     sink_placements.add(self.disconnect_external_devices(
-                        vertex, placements, machine))
+                        sink_vertex, placements, machine))
 
                 # Generate routing tree, assuming perfect machine
                 root, route_lookup = self.generate_routing_tree(
@@ -74,20 +72,59 @@ class NerRoute(object):
                     root, route_lookup = self.avoid_dead_links(root, machine)
 
                 # Add the sinks of the partition to the RoutingTree
-                for sink in sink_vertices:
-                    tree_node = route_lookup[
-                        placements.get_placement_of_vertex(sink)]
-                    # TODO if sink is an external device, route to nearest chip
-                    # if external_device_link is
-                    _, _, _, core = placements.get_placement_of_vertex(sink)
-                    if core is not None:
-                        tree_node.children.append((Routes.core(core), sink))
+                for sink_placement in sink_placements:
+                    tree_node = route_lookup[sink_placement]
+                    vertex, _, _, core = sink_placement
+                    # if external device - check that this works?
+                    if core is None:
+                        tree_node.children.append(
+                            # link id to external device, placement
+                            (machine.get_fpga_link_with_id(
+                             vertex.fpga_id, vertex.fpga_link_id,
+                             vertex.board_address).connected_link,
+                             placements.get_placement_of_vertex(vertex)))
+                    else:
+                        tree_node.children.append((Routes.core(core),
+                                                   sink_placement))
 
                 routes[partition] = root
 
-        # reconnect and route to external devices
+                self.convert_route(routing_tables, partition, 0, None, root)
 
         return routing_tables
+
+    def convert_route(self, routing_tables, partition, incoming_processor,
+                      incoming_link, root):
+        next_hops = list()
+        processor_ids = list()
+        link_ids = list()
+        x, y = root.chip
+        for (route, next_hop) in root.children:
+            if route is not None:
+                link = None
+                if isinstance(route, Routes):
+                    if route.is_core:
+                        processor_ids.append(route.core_num)
+                    else:
+                        link = route.value
+                        link_ids.append(route.core_num)
+                elif isinstance(route, Links):
+                    link = route.value
+                    link_ids.append(link)
+                if isinstance(next_hop, RoutingTree):
+                    next_incoming_link = None
+                    if link is not None:
+                        next_incoming_link = (link + 3) % 6
+                    next_hops.append((next_hop, next_incoming_link))
+
+        routing_tables.add_path_entry(
+            MulticastRoutingTableByPartitionEntry(
+                link_ids, processor_ids, incoming_processor, incoming_link),
+            x, y, partition)
+
+        for next_hop, next_incoming_link in next_hops:
+            self.convert_route(routing_tables, partition, None,
+                               next_incoming_link, next_hop)
 
     def disconnect_external_devices(self, vertex, placements, machine):
         """Maybe this needs a better name since it returns a placement
@@ -113,8 +150,6 @@ class NerRoute(object):
                 external_device_link.connected_chip_y, None)
 
         return placement
-
-    # def reconnect_external_devices(self, vertex, placements, machine):
 
     def generate_routing_tree(self, source, destinations, machine, radius=10):
         """Produce a shortest path tree for a given partition using NER.
