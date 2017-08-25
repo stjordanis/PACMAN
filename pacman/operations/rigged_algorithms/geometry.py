@@ -296,6 +296,7 @@ def longest_dimension_first(vector, start=(0, 0), width=None, height=None):
                 y %= height
 
             # replaced Links.from_vector
+            # TODO want to return the key, not the value here! i.e. link id no 0-5
             direction = machine.LINK_ADD_TABLE((dx, dy))
 
             out.append((direction, (x, y)))

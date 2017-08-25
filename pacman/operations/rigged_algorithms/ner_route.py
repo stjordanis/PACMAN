@@ -2,9 +2,6 @@ from pacman.model.graphs import AbstractFPGAVertex, AbstractVirtualVertex, \
     AbstractSpiNNakerLinkVertex
 from pacman.operations.rigged_algorithms.ner_routing_tree import RoutingTree
 from pacman.operations.rigged_algorithms.geometry import *
-#     shortest_mesh_path_length, shortest_torus_path_length, \
-#     shortest_mesh_path, shortest_torus_path, to_xyz, longest_dimension_first,\
-#     concentric_hexagons
 from pacman.exceptions import PacmanRoutingException
 from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
 from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
@@ -37,58 +34,87 @@ class NerRoute(object):
         :return:
         """
 
-        # disconnect external devices
-        # generate routing tree, assuming perfect machine
-            # get partitions
-
         progress = ProgressBar(machine_graph.n_outgoing_edge_partitions,
                                "Creating routing entries")
 
         routing_tables = MulticastRoutingTableByPartition()
         all_edges_routed = set()
-        machine_graph.get_edges_starting_at_vertex()
-        # check for broken or dead links
-        # replace dead links
-        # add vertices to routing tree
+
+        # disconnect external devices
+        for vertex in progress.over(placements):
+            source_placement = self.disconnect_external_devices(
+                vertex, placements, machine)
+
+        # route
+            # is it possible to have outgoing multicast traffic from a
+            # virtual device?
+            partitions = \
+                machine_graph.get_outgoing_edge_partitions_starting_at_vertex(
+                    vertex)
+            routes = {}
+            for partition in partitions:
+                # Create list of sink vertices
+                sink_vertices = list()
+                for edge in partition.edges:
+                    sink_vertices.append(edge.post_vertex)
+
+                # set of destination placements for the sinks of the tree
+                sink_placements = set()
+                for sink in sink_vertices:
+                    sink_placements.add(self.disconnect_external_devices(
+                        vertex, placements, machine))
+
+                # Generate routing tree, assuming perfect machine
+                root, route_lookup = self.generate_routing_tree(
+                    # format placement(self, vertex, x, y, p)
+                    source_placement, sink_placements, machine, radius=20)
+
+                # Fix routes to avoid dead links
+                if self.route_has_dead_links(root, machine):
+                    root, route_lookup = self.avoid_dead_links(root, machine)
+
+                # Add the sinks of the partition to the RoutingTree
+                for sink in sink_vertices:
+                    tree_node = route_lookup[
+                        placements.get_placement_of_vertex(sink)]
+                    # TODO if sink is an external device, route to nearest chip
+                    # if external_device_link is
+                    _, _, _, core = placements.get_placement_of_vertex(sink)
+                    if core is not None:
+                        tree_node.children.append((Routes.core(core), sink))
+
+                routes[partition] = root
+
         # reconnect and route to external devices
 
         return routing_tables
 
-    def disconnect_external_devices(self, placements, chip, machine):
+    def disconnect_external_devices(self, vertex, placements, machine):
+        """Maybe this needs a better name since it returns a placement
 
-        # placement find fpga vertex
-        # chip find router find link that is active
-        # real chip is destination of link
-        # make a distinction between ingoing and outgoing connections
-        #   -perhaps not as this may be out of my scope
-        for vertex in placements:
-            if isinstance(vertex, AbstractVirtualVertex):
-                virtual_chip_placement = None
-                if isinstance(vertex, AbstractFPGAVertex):
-                    virtual_chip_placement = \
-                        placements.get_placement_of_vertex()
-                elif isinstance(vertex, AbstractSpiNNakerLinkVertex):
-                    virtual_chip_placement = \
-                        placements.get_placement_of_vertex()
+        :param vertex:
+        :param placements:
+        :param machine:
+        :return:
+        """
 
-                # Get the link connecting the virtual chip to a chip on the
-                # board
-                # does something need to be done here to verify that
-                # there is only one link?
-                chip_link = chip.router.links(virtual_chip_placement.x,
-                                              virtual_chip_placement.y)
+        placement = placements.get_placement_of_vertex(vertex)
+        if isinstance(vertex, AbstractVirtualVertex):
+            external_device_link = None
+            if isinstance(vertex, AbstractFPGAVertex):
+                external_device_link = machine.get_fpga_link_with_id(
+                    vertex.fpga_id, vertex.fpga_link_id,
+                    vertex.board_address)
+            elif isinstance(vertex, AbstractSpiNNakerLinkVertex):
+                external_device_link = machine.get_spinnaker_link_with_id(
+                    vertex.spinnaker_link_id, vertex.board_address)
+            placement = (
+                vertex, external_device_link.connected_chip_x,
+                external_device_link.connected_chip_y, None)
 
-                # This is the chip to which we shall temporarily route
-                redirect_to_chip = machine.get_chip_over_link(
-                    virtual_chip_placement.x, virtual_chip_placement.y,
-                    chip_link)
+        return placement
 
-                # Create a virtual placement for the algorithm to route to
-                virtual_placement = Placement(vertex, redirect_to_chip[0],
-                                              redirect_to_chip[1], None)
-
-
-        # force the routing tree to route to the nearest connected chip
+    # def reconnect_external_devices(self, vertex, placements, machine):
 
     def generate_routing_tree(self, source, destinations, machine, radius=10):
         """Produce a shortest path tree for a given partition using NER.
@@ -254,7 +280,7 @@ class NerRoute(object):
 
         return route[source], route
 
-    def a_star(self, machine, heuristic_source, sink, sources, chip, link):
+    def a_star(self, sink, heuristic_source, sources, machine):
         if machine.has_wrap_arounds:
             heuristic = (lambda node:
                          shortest_torus_path_length(to_xyz(node),
@@ -290,14 +316,15 @@ class NerRoute(object):
 
             # Try all neighboring locations. Note: link identifiers are
             # from the perspective of the neighbor, not the current node!
-            for neighbor_link in chip.router.links:
+            for neighbor_link in Links:
                 # this is a link id (int)
                 vector = neighbor_link.opposite.to_vector()
                 neighbor = ((node[0] + vector[0]) % machine.max_chip_x,
                             (node[1] + vector[1]) % machine.max_chip_y)
 
                 # Skip links which are broken
-                if (neighbor[0], neighbor[1], neighbor_link) not in link:
+                if not machine.get_link_at(neighbor[0], neighbor[1],
+                                           neighbor_link):
                     continue
 
                 # Skip neighbors which have already been visited
@@ -324,21 +351,21 @@ class NerRoute(object):
 
         return path
 
-    def route_has_dead_links(self, root, link):
+    def route_has_dead_links(self, root, machine):
         """Determine if a route uses any dead links.
 
         :param root: The root of the RoutingTree which contains nothing but
             RoutingTrees (i.e. no vertices and no links)
         :type root: \
             :py:class:`pacman.operations.rigged_algorithms.ner_routing_tree`
-        :param link: a link in a spinnaker machine
-        :return: link:
-            :py:class:`spinn_machine.link`
+        :param machine: a link in a spinnaker machine
+        :return: bool which is true if route uses dead links
         """
 
+        # Can this be changed to an affirmative?
         for direction, (x, y), routes in root.traverse():
             for route in routes:
-                if (x, y, route) not in link:
+                if not machine.is_link_at(x, y, route):
                     return True
         return False
 
@@ -357,8 +384,10 @@ class NerRoute(object):
         else:
             return shortest_mesh_path(source, destination)
 
-    def copy_and_disconnect_tree(self, root, machine, chip):
+    def copy_and_disconnect_tree(self, root, machine):
         # try to find a better way to do this
+        width = machine.max_chip_x
+        height = machine.max_chip_y
         new_root = None
 
         # Lookup for copied routing tree {(x, y): RoutingTree, ...}
@@ -391,14 +420,16 @@ class NerRoute(object):
                 # If this node is not dead, check connectivity to parent node
                 # (no reason to check connectivity between a dead node and its
                 # parent).
-                if direction in chip.router.links(
-                        new_parent.chip[0], new_parent.chip[1], direction,
-                        new_node.chip[0], new_node.chip[1]):
-                    # Is connected via working link
-                    new_parent.children.append((direction, new_node))
+                router = machine.get_chip_at(new_parent.chip).router
+                if router.is_link(direction):
+                    link = router.get_link(direction)
+                    if machine.is_chip_at(link.destination_x,
+                                          link.destination_y):
+                        # Is connected via working link
+                        new_parent.children.append((direction, new_node))
                 else:
                     # Link to parent is dead (or original parent was dead
-                    # and the new parent is not adjacent
+                    # and the new parent is not adjacent)
                     broken_links.add((new_parent.chip, new_node.chip))
 
             # Copy children
@@ -407,12 +438,12 @@ class NerRoute(object):
 
         return new_root, new_lookup, broken_links
 
-    def avoid_dead_links(self, root, machine, chip, link):
+    def avoid_dead_links(self, root, machine):
         # Again, not necessary if copy and disconnect tree is changed
 
         # Make a copy of the RoutingTree with all broken parts disconnected
         root, lookup, broken_links = self.copy_and_disconnect_tree(
-            root, machine, chip)
+            root, machine)
 
         # For each disconnected subtree, use A* to connect the tree to
         # *any* other disconnected subtree. Note that this process will
@@ -424,9 +455,9 @@ class NerRoute(object):
             # Try to reconnect broken links to any other part of the tree
             # (excluding this broken subtree itself since that would create
             # a cycle).
-            path = self.a_star(machine, child, parent,
+            path = self.a_star(child, parent,
                                set(lookup).difference(child_chips),
-                               chip, link)
+                               machine)
 
             # Add new RoutingTree nodes to reconnect the child to the tree.
             last_node = lookup[path[0][1]]
@@ -462,6 +493,3 @@ class NerRoute(object):
             last_node.children.append((last_direction, lookup[child]))
 
         return root, lookup
-
-    def add_sinks(self):
-        # Add sinks to the RoutingTree
