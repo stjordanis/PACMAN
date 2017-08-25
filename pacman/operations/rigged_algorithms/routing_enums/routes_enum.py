@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class Routes(Enum):
+class Routes(IntEnum):
     """Enumeration of routes which a SpiNNaker packet can take after arriving
     at a router.
 

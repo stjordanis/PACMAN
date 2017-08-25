@@ -2,7 +2,7 @@ from enum import Enum
 from six import iteritems
 
 
-class Links(Enum):
+class Links(IntEnum):
     """Enumeration of links from a SpiNNaker chip."""
 
     east = 0
@@ -11,6 +11,50 @@ class Links(Enum):
     west = 3
     south_west = 4
     south = 5
+
+    @classmethod
+    def from_vector(cls, vector):
+        """Given a vector from one node to a neighbour, get the link direction.
+
+        Note that any vector whose magnitude in any given dimension is greater
+        than 1 will be assumed to use a machine's wrap-around links.
+
+        Note that this method assumes a system larger than 2x2. If a 2x2, 2xN
+        or Nx2 (for N > 2) system is provided the link selected will
+        arbitrarily favour either wrap-around or non-wrap-around links. This
+        function is not meaningful for 1x1 systems.
+
+        Parameters
+        ----------
+        vector : (x, y)
+            The vector from one node to its logical neighbour.
+
+        Returns
+        -------
+        :py:class:`~rig.links.Links`
+            The link direction to travel in the direction indicated by the
+            vector.
+        """
+        x, y = vector
+
+        # Vectors must be mapped to a form (x, y) where x and y are -1, 0 or 1.
+        # When a vector is between two neighbouring nodes which are not
+        # connected by a wrap-around link this is already the case. When
+        # wrapping around on a given dimension, however, the element of the
+        # vector corresponding with that dimension will be outside this range.
+        #
+        # For example, in a 4x4 system, the vector between nodes (3, 1) and (0,
+        # 1) comes out as (-3, 0). In this case we wrap around on the X axis
+        # going from the right-hand-side to the left-hand-side. The logical
+        # direction vector should just be (1, 0) since we're logically
+        # travelling East. Notice that the sign of the wrapped-around element
+        # is flipped and the magnitude forced to 1.
+        if abs(x) > 1:
+            x = -1 if x > 0 else 1
+        if abs(y) > 1:
+            y = -1 if y > 0 else 1
+
+        return _link_direction_lookup[(x, y)]
 
     def to_vector(self):
         """Given a link direction, return the equivalent vector."""

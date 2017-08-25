@@ -34,14 +34,14 @@ class NerRoute(object):
         :return:
         """
 
-        progress = ProgressBar(machine_graph.n_outgoing_edge_partitions,
+        progress = ProgressBar(placements.n_placements,
                                "Creating routing entries")
 
         routing_tables = MulticastRoutingTableByPartition()
-        all_edges_routed = set()
 
         # disconnect external devices
-        for vertex in progress.over(placements):
+        for placement in progress.over(placements):
+            vertex = placement.vertex
             source_placement = self.disconnect_external_devices(
                 vertex, placements, machine)
 
@@ -65,7 +65,9 @@ class NerRoute(object):
                 # Generate routing tree, assuming perfect machine
                 root, route_lookup = self.generate_routing_tree(
                     # format placement(self, vertex, x, y, p)
-                    source_placement, sink_placements, machine, radius=20)
+                    (source_placement.x, source_placement.y),
+                    ((placement.x, placement.y) for placement in
+                     sink_placements), machine, radius=20)
 
                 # Fix routes to avoid dead links
                 if self.route_has_dead_links(root, machine):
@@ -73,8 +75,10 @@ class NerRoute(object):
 
                 # Add the sinks of the partition to the RoutingTree
                 for sink_placement in sink_placements:
-                    tree_node = route_lookup[sink_placement]
-                    vertex, _, _, core = sink_placement
+                    tree_node = route_lookup[(sink_placement.x,
+                                              sink_placement.y)]
+                    vertex = sink_placement.vertex
+                    core = sink_placement.p
                     # if external device - check that this works?
                     if core is None:
                         tree_node.children.append(
@@ -88,8 +92,10 @@ class NerRoute(object):
                                                    sink_placement))
 
                 routes[partition] = root
+                partition_route = routes[partition]
 
-                self.convert_route(routing_tables, partition, 0, None, root)
+                self.convert_route(routing_tables, partition, 0, None,
+                                   partition_route)
 
         return routing_tables
 
@@ -99,6 +105,7 @@ class NerRoute(object):
         processor_ids = list()
         link_ids = list()
         x, y = root.chip
+
         for (route, next_hop) in root.children:
             if route is not None:
                 link = None

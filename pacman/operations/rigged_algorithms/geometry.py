@@ -2,6 +2,7 @@
 """
 
 from spinn_machine.machine import Machine as machine
+from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
 
 import random
 from six import iteritems
@@ -221,16 +222,18 @@ def concentric_hexagons(radius, start=(0, 0)):
         The coordinate of the central hexagon.
     """
     x, y = start
-    yield (x, y)
+    coords = list()
+    coords.append((x, y))
     for r in range(1, radius + 1):
         # Move to the next layer
         y -= 1
         # Walk around the hexagon of this radius
         for dx, dy in [(1, 1), (0, 1), (-1, 0), (-1, -1), (0, -1), (1, 0)]:
             for _ in range(r):
-                yield (x, y)
+                coords.append((x, y))
                 x += dx
                 y += dy
+    return coords
 
 
 def longest_dimension_first(vector, start=(0, 0), width=None, height=None):
@@ -295,9 +298,7 @@ def longest_dimension_first(vector, start=(0, 0), width=None, height=None):
             if height is not None:
                 y %= height
 
-            # replaced Links.from_vector
-            # TODO want to return the key, not the value here! i.e. link id no 0-5
-            direction = machine.LINK_ADD_TABLE((dx, dy))
+            direction = Links.from_vector
 
             out.append((direction, (x, y)))
 
