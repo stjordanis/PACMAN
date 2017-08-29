@@ -62,7 +62,7 @@ class NerRoute(object):
                     sink_placements.add(self.disconnect_external_devices(
                         sink_vertex, placements, machine))
 
-                # Generate routing tree, assuming perfect machine
+                # Generate routing tree, assuming a perfect machine
                 root, route_lookup = self.generate_routing_tree(
                     # format placement(self, vertex, x, y, p)
                     (source_placement.x, source_placement.y),
@@ -459,7 +459,7 @@ class NerRoute(object):
             new_parent, direction, old_node = to_visit.popleft()
 
             # FIXME this is one place where it breaks: wrong no. args for is_chip_at()
-            if machine.is_chip_at(old_node.chip):
+            if machine.is_chip_at(old_node.chip[0], old_node.chip[1]):
                 # Create a copy of the node
                 new_node = RoutingTree(old_node.chip)
                 new_lookup[new_node.chip] = new_node
