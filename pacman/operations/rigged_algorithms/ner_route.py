@@ -77,19 +77,34 @@ class NerRoute(object):
                 for sink_placement in sink_placements:
                     tree_node = route_lookup[(sink_placement.x,
                                               sink_placement.y)]
+                    print "Current node, {}".format(tree_node)
                     vertex = sink_placement.vertex
                     core = sink_placement.p
-                    # if external device - check that this works?
+                    # if external device
+                    if core is None:
+                        tree_node.children.append((None, sink_placement))
+                    else:
+                        tree_node.children.append((Routes.core(core),
+                                                   sink_placement))
+
+                    # reattach external devices to sinks
                     if core is None:
                         tree_node.children.append(
                             # link id to external device, placement
                             (machine.get_fpga_link_with_id(
-                             vertex.fpga_id, vertex.fpga_link_id,
-                             vertex.board_address).connected_link,
+                                vertex.fpga_id, vertex.fpga_link_id,
+                                vertex.board_address).connected_link,
                              placements.get_placement_of_vertex(vertex)))
-                    else:
-                        tree_node.children.append((Routes.core(core),
-                                                   sink_placement))
+
+                # reattach external devices to sources
+                if source_placement.p is None:
+                    source_node = route_lookup[(source_placement.x, source_placement.y)]
+                    new_node = RoutingTree((source_placement.x, source_placement.y))
+                    route_lookup[(source_placement.x, source_placement.y)] = new_node
+                    direction = machine.get_fpga_link_with_id(
+                            vertex.fpga_id, vertex.fpga_link_id,
+                            vertex.board_address).connected_link
+                    source_node.children.append((Routes(direction), new_node))
 
                 routes[partition] = root
                 partition_route = routes[partition]
@@ -443,6 +458,7 @@ class NerRoute(object):
         while to_visit:
             new_parent, direction, old_node = to_visit.popleft()
 
+            # FIXME this is one place where it breaks: wrong no. args for is_chip_at()
             if machine.is_chip_at(old_node.chip):
                 # Create a copy of the node
                 new_node = RoutingTree(old_node.chip)
