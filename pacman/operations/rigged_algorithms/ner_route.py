@@ -129,7 +129,7 @@ class NerRoute(object):
                         processor_ids.append(route.core_num)
                     else:
                         link = route.value
-                        link_ids.append(route.core_num)
+                        link_ids.append(link)
                 elif isinstance(route, Links):
                     link = route.value
                     link_ids.append(link)
@@ -477,7 +477,7 @@ class NerRoute(object):
                 # If this node is not dead, check connectivity to parent node
                 # (no reason to check connectivity between a dead node and its
                 # parent).
-                router = machine.get_chip_at(new_parent.chip).router
+                router = machine.get_chip_at(new_parent.chip[0], new_parent.chip[1]).router
                 if router.is_link(direction):
                     link = router.get_link(direction)
                     if machine.is_chip_at(link.destination_x,
