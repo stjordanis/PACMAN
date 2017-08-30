@@ -61,6 +61,7 @@ class NerRoute(object):
                 for sink_vertex in sink_vertices:
                     sink_placements.add(self.disconnect_external_devices(
                         sink_vertex, placements, machine))
+                print "Sink Placements: {}".format(sink_placements)
 
                 # Generate routing tree, assuming a perfect machine
                 root, route_lookup = self.generate_routing_tree(
@@ -68,16 +69,19 @@ class NerRoute(object):
                     (source_placement.x, source_placement.y),
                     ((placement.x, placement.y) for placement in
                      sink_placements), machine, radius=20)
+                print "Route lookup: {}".format(route_lookup)
+                print "Source placement: {}".format(source_placement)
 
                 # Fix routes to avoid dead links
                 if self.route_has_dead_links(root, machine):
                     root, route_lookup = self.avoid_dead_links(root, machine)
 
                 # Add the sinks of the partition to the RoutingTree
+                #print "Sink Placements: {}".format(sink_placements)
                 for sink_placement in sink_placements:
                     tree_node = route_lookup[(sink_placement.x,
                                               sink_placement.y)]
-                    print "Current node, {}".format(tree_node)
+                    #print "Current node: {}".format(tree_node)
                     vertex = sink_placement.vertex
                     core = sink_placement.p
                     # if external device
