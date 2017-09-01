@@ -44,6 +44,7 @@ class NerRoute(object):
             vertex = placement.vertex
             source_placement = self.disconnect_external_devices(
                 vertex, placements, machine)
+            # print "Source placement: {}".format(source_placement)
 
         # route
             partitions = \
@@ -61,16 +62,21 @@ class NerRoute(object):
                 for sink_vertex in sink_vertices:
                     sink_placements.add(self.disconnect_external_devices(
                         sink_vertex, placements, machine))
-                print "Sink Placements: {}".format(sink_placements)
+                # print "Sink Placements: {}".format(sink_placements)
+
+                sink_coords = set()
+                for placement in sink_placements:
+                    sink_coords.add((placement.x, placement.y))
+                # print "Sink coordinates: {}".format(sink_coords)
 
                 # Generate routing tree, assuming a perfect machine
+                # route[source], route
                 root, route_lookup = self.generate_routing_tree(
                     # format placement(self, vertex, x, y, p)
                     (source_placement.x, source_placement.y),
-                    ((placement.x, placement.y) for placement in
-                     sink_placements), machine, radius=20)
-                print "Route lookup: {}".format(route_lookup)
-                print "Source placement: {}".format(source_placement)
+                    sink_coords, machine, radius=20)
+                # print "Route lookup: {}".format(route_lookup)
+                # print "Source placement: {}".format(source_placement)
 
                 # Fix routes to avoid dead links
                 if self.route_has_dead_links(root, machine):
@@ -95,8 +101,8 @@ class NerRoute(object):
                     if core is None:
                         tree_node.children.append(
                             # link id to external device, placement
-                            (machine.get_fpga_link_with_id(
-                                vertex.fpga_id, vertex.fpga_link_id,
+                            (machine.get_spinnaker_link_with_id(
+                                vertex.spinnaker_link_id,
                                 vertex.board_address).connected_link,
                              placements.get_placement_of_vertex(vertex)))
 
@@ -105,8 +111,8 @@ class NerRoute(object):
                     source_node = route_lookup[(source_placement.x, source_placement.y)]
                     new_node = RoutingTree((source_placement.x, source_placement.y))
                     route_lookup[(source_placement.x, source_placement.y)] = new_node
-                    direction = machine.get_fpga_link_with_id(
-                            vertex.fpga_id, vertex.fpga_link_id,
+                    direction = machine.get_spinnaker_link_with_id(
+                            vertex.spinnaker_link_id,
                             vertex.board_address).connected_link
                     source_node.children.append((Routes(direction), new_node))
 
@@ -164,11 +170,11 @@ class NerRoute(object):
         placement = placements.get_placement_of_vertex(vertex)
         if isinstance(vertex, AbstractVirtualVertex):
             external_device_link = None
-            if isinstance(vertex, AbstractFPGAVertex):
-                external_device_link = machine.get_fpga_link_with_id(
-                    vertex.fpga_id, vertex.fpga_link_id,
-                    vertex.board_address)
-            elif isinstance(vertex, AbstractSpiNNakerLinkVertex):
+            # if isinstance(vertex, AbstractFPGAVertex):
+            #     external_device_link = machine.get_fpga_link_with_id(
+            #         vertex.fpga_id, vertex.fpga_link_id,
+            #         vertex.board_address)
+            if isinstance(vertex, AbstractSpiNNakerLinkVertex):
                 external_device_link = machine.get_spinnaker_link_with_id(
                     vertex.spinnaker_link_id, vertex.board_address)
             placement = (
@@ -184,8 +190,9 @@ class NerRoute(object):
 
         Benchmarks and comments taken from Rig. (place_and_route.route.ner)
 
-        :param source:
-        :param destinations:
+        :param source: tuple of chip coordinates of the source placement
+        :param destinations: iterable ([(x, y), ...]) of coordinates of
+            destination vertices
         :param machine:
         :param radius:
         :return:
@@ -193,8 +200,8 @@ class NerRoute(object):
 
         # called for each partition
         route = {source: RoutingTree(source)}
-        width = machine.max_chip_x
-        height = machine.max_chip_y
+        width = machine.max_chip_x+1
+        height = machine.max_chip_y+1
 
         # Handle each destination, sorted by distance from the source,
         # closest first.
@@ -342,12 +349,14 @@ class NerRoute(object):
         return route[source], route
 
     def a_star(self, sink, heuristic_source, sources, machine):
+        width = machine.max_chip_x+1
+        height = machine.max_chip_y+1
+
         if machine.has_wrap_arounds:
             heuristic = (lambda node:
                          shortest_torus_path_length(to_xyz(node),
                                                     to_xyz(heuristic_source),
-                                                    machine.max_chip_x,
-                                                    machine.max_chip_y))
+                                                    width, height))
         else:
             heuristic = (lambda node:
                          shortest_mesh_path_length(to_xyz(node),
@@ -380,11 +389,11 @@ class NerRoute(object):
             for neighbor_link in Links:
                 # this is a link id (int)
                 vector = neighbor_link.opposite.to_vector()
-                neighbor = ((node[0] + vector[0]) % machine.max_chip_x,
-                            (node[1] + vector[1]) % machine.max_chip_y)
+                neighbor = ((node[0] + vector[0]) % width,
+                            (node[1] + vector[1]) % height)
 
                 # Skip links which are broken
-                if not machine.get_link_at(neighbor[0], neighbor[1],
+                if not machine.is_link_at(neighbor[0], neighbor[1],
                                            neighbor_link):
                     continue
 
@@ -462,7 +471,6 @@ class NerRoute(object):
         while to_visit:
             new_parent, direction, old_node = to_visit.popleft()
 
-            # FIXME this is one place where it breaks: wrong no. args for is_chip_at()
             if machine.is_chip_at(old_node.chip[0], old_node.chip[1]):
                 # Create a copy of the node
                 new_node = RoutingTree(old_node.chip)
@@ -511,17 +519,22 @@ class NerRoute(object):
         # eventually result in all disconnected subtrees being connected,
         # the result is a fully connected tree.
         for parent, child in broken_links:
+            # child is the dict of destination chips or RoutingTrees associated
+            # with the parent. This is a set of all these chips.
             child_chips = set(c.chip for c in lookup[child])
 
             # Try to reconnect broken links to any other part of the tree
             # (excluding this broken subtree itself since that would create
             # a cycle).
+            # path: type list of (link id, (chip x, chip y))
             path = self.a_star(child, parent,
                                set(lookup).difference(child_chips),
                                machine)
 
             # Add new RoutingTree nodes to reconnect the child to the tree.
+            # coords of chip
             last_node = lookup[path[0][1]]
+            # link id/direction
             last_direction = path[0][0]
             for direction, (x, y) in path[1:]:
                 if (x, y) not in child_chips:
