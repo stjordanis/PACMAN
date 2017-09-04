@@ -117,10 +117,9 @@ class NerRoute(object):
                     source_node.children.append((Routes(direction), new_node))
 
                 routes[partition] = root
-                partition_route = routes[partition]
 
                 self.convert_route(routing_tables, partition, 0, None,
-                                   partition_route)
+                                   root)
 
         return routing_tables
 

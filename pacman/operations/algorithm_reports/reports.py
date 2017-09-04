@@ -682,6 +682,9 @@ def _search_route(
         source_placement.x, source_placement.y, key_and_mask,
         dest_placement.x, dest_placement.y, dest_placement.p, machine,
         routing_tables, number_of_entries)
+
+    if extra_text is None:
+        print "Whoops! {}".format(text)
     text += extra_text
     return text, total_number_of_entries
 
