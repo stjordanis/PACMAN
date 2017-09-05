@@ -673,6 +673,7 @@ def _search_route(
         text += "Virtual FPGA Link"
     text += "{}:{}:{} -> ".format(
         source_placement.x, source_placement.y, source_placement.p)
+    print "Source placement tested: {}".format(text)
 
     # Start the search
     number_of_entries = 0

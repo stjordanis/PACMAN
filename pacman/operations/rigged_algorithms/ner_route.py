@@ -51,6 +51,7 @@ class NerRoute(object):
                 machine_graph.get_outgoing_edge_partitions_starting_at_vertex(
                     vertex)
             routes = {}
+
             for partition in partitions:
                 # Create list of sink vertices
                 sink_vertices = list()
@@ -118,8 +119,14 @@ class NerRoute(object):
 
                 routes[partition] = root
 
-                self.convert_route(routing_tables, partition, 0, None,
-                                   root)
+                if (source_placement.x, source_placement.y) == (0, 0):
+                    # if source_placement.p == 3:
+                    print ("(0, 0, {})".format(source_placement.p) +
+                          "routes: {}".format(routes) +
+                          "machine edge type: {}".format(routes[0].__class__.__name__))
+
+                self.convert_route(routing_tables, partition,
+                                   source_placement.p, None, root)
 
         return routing_tables
 
@@ -129,6 +136,8 @@ class NerRoute(object):
         processor_ids = list()
         link_ids = list()
         x, y = root.chip
+
+        print "Converted route: {}".format(x, y)
 
         for (route, next_hop) in root.children:
             if route is not None:
@@ -455,6 +464,9 @@ class NerRoute(object):
 
     def copy_and_disconnect_tree(self, root, machine):
         # try to find a better way to do this
+
+        # if root.chip == (0,0):
+        #     print "Root at (0,0)"
 
         new_root = None
 
