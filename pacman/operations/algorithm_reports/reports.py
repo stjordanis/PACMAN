@@ -673,7 +673,7 @@ def _search_route(
         text += "Virtual FPGA Link"
     text += "{}:{}:{} -> ".format(
         source_placement.x, source_placement.y, source_placement.p)
-    print "Source placement tested: {}".format(text)
+    # print "Source placement tested: {}".format(text)
 
     # Start the search
     number_of_entries = 0
@@ -725,6 +725,10 @@ def _recursive_trace_to_destinations(
         # If the current chip is real, find the link to the destination
         table = routing_tables.get_routing_table_for_chip(chip_x, chip_y)
         entry = _locate_routing_entry(table, key_and_mask.key)
+
+        if entry is None:
+            print "No routing entry for ({}, {}), table: {}".format(chip_x, chip_y, table)
+
         for link_id in entry.link_ids:
             link = chip.router.get_link(link_id)
             result, new_n_entries = _recursive_trace_to_destinations(

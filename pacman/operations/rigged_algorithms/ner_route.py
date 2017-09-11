@@ -76,19 +76,15 @@ class NerRoute(object):
                     # format placement(self, vertex, x, y, p)
                     (source_placement.x, source_placement.y),
                     sink_coords, machine, radius=20)
-                # print "Route lookup: {}".format(route_lookup)
-                # print "Source placement: {}".format(source_placement)
 
                 # Fix routes to avoid dead links
                 if self.route_has_dead_links(root, machine):
                     root, route_lookup = self.avoid_dead_links(root, machine)
 
                 # Add the sinks of the partition to the RoutingTree
-                #print "Sink Placements: {}".format(sink_placements)
                 for sink_placement in sink_placements:
                     tree_node = route_lookup[(sink_placement.x,
                                               sink_placement.y)]
-                    #print "Current node: {}".format(tree_node)
                     vertex = sink_placement.vertex
                     core = sink_placement.p
                     # if external device
@@ -119,14 +115,10 @@ class NerRoute(object):
 
                 routes[partition] = root
 
-                if (source_placement.x, source_placement.y) == (0, 0):
-                    # if source_placement.p == 3:
-                    print ("(0, 0, {})".format(source_placement.p) +
-                          "routes: {}".format(routes) +
-                          "machine edge type: {}".format(routes[0].__class__.__name__))
-
                 self.convert_route(routing_tables, partition,
                                    source_placement.p, None, root)
+
+                print routing_tables
 
         return routing_tables
 
@@ -137,19 +129,17 @@ class NerRoute(object):
         link_ids = list()
         x, y = root.chip
 
-        print "Converted route: {}".format(x, y)
-
-        for (route, next_hop) in root.children:
-            if route is not None:
+        for (root_chip, next_hop) in root.children:
+            if root_chip is not None:
                 link = None
-                if isinstance(route, Routes):
-                    if route.is_core:
-                        processor_ids.append(route.core_num)
+                if isinstance(root_chip, Routes):
+                    if root_chip.is_core:
+                        processor_ids.append(root_chip.core_num)
                     else:
-                        link = route.value
+                        link = root_chip.value
                         link_ids.append(link)
-                elif isinstance(route, Links):
-                    link = route.value
+                elif isinstance(root_chip, Links):
+                    link = root_chip.value
                     link_ids.append(link)
                 if isinstance(next_hop, RoutingTree):
                     next_incoming_link = None
