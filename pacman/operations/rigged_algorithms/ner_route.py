@@ -118,8 +118,6 @@ class NerRoute(object):
                 self.convert_route(routing_tables, partition,
                                    source_placement.p, None, root)
 
-                print routing_tables
-
         return routing_tables
 
     def convert_route(self, routing_tables, partition, incoming_processor,
