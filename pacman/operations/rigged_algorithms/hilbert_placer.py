@@ -24,7 +24,7 @@ class HilbertPlacer(object):
 
         :param machine_graph: The machine_graph to place
         :type machine_graph:\
-            :py:class:`pacman.model.graph.machine.machine_graph.MachineGraph`
+            :py:class:`pacman.model.graphs.machine.machine_graph.MachineGraph`
         :param machine: A SpiNNaker machine object.
         :type machine: :py:class:`SpiNNMachine.spinn_machine.machine.Machine`
         :return placements: Placements of vertices on the machine
