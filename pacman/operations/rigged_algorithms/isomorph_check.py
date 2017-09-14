@@ -66,4 +66,4 @@ class IsomorphicChecker(object):
                         placements_copy.get_vertex_on_processor(x, y, p))
 
         # if the two sets are not
-        return chip_vertices != chip_vertices_copy
+        return chip_vertices == chip_vertices_copy
