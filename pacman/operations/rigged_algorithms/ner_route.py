@@ -38,6 +38,10 @@ class NerRoute(object):
                                "Creating routing entries")
 
         routing_tables = MulticastRoutingTableByPartition()
+        # in format entry, router_x, router_y, partition
+        # dict mapping (x,y)-> dict mapping (partition)-> routing table entry
+        # entry: "_routing_entry_key", "_mask", "_defaultable",
+        # "_processor_ids", "_link_ids"
 
         # disconnect external devices
         for placement in progress.over(placements):
@@ -118,7 +122,7 @@ class NerRoute(object):
                 self.convert_route(routing_tables, partition,
                                    source_placement.p, None, root)
 
-                print routing_tables
+                # print routing_tables
 
         return routing_tables
 
