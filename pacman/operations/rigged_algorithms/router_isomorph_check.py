@@ -15,4 +15,5 @@ class RouterIsomorphChecker(object):
         entry format: out_going_links, outgoing_processors,
         incoming_processor=None, incoming_link=None"""
 
+
         for table in routing_tables:
