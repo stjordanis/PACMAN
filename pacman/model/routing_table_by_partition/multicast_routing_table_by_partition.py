@@ -15,7 +15,7 @@ class MulticastRoutingTableByPartition(object):
         """ Adds a multicast routing path entry
 
         :param entry: the entry to add
-        :type entry: :py:class:`spinn_machine.multicast_routing_entry`
+        :type entry: :py:class:`pacman.model.routing_table_by_partition.MulticastRoutingTableByPartitionEntry`
         :param router_x: the x coord of the router
         :type router_x: int
         :param router_y: the y coord of the router
