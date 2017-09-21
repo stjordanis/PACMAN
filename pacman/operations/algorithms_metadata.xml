@@ -258,7 +258,7 @@
             <param_type>MemoryRoutingTableByPartition</param_type>
         </outputs>
     </algorithm>
-        <algorithm name="NerRoute">
+    <algorithm name="NerRoute">
         <python_module>pacman.operations.rigged_algorithms.ner_route</python_module>
         <python_class>NerRoute</python_class>
         <input_definitions>
@@ -284,7 +284,6 @@
             <param_type>MemoryRoutingTableByPartition</param_type>
         </outputs>
     </algorithm>
-
     <algorithm name="BasicRoutingInfoAllocator">
         <python_module>pacman.operations.routing_info_allocator_algorithms.basic_routing_info_allocator</python_module>
         <python_class>BasicRoutingInfoAllocator</python_class>

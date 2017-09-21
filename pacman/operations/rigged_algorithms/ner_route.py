@@ -119,10 +119,9 @@ class NerRoute(object):
 
                 routes[partition] = root
 
-                self.convert_route(routing_tables, partition,
-                                   source_placement.p, None, root)
+                self.convert_route(routing_tables, partition, 0, None, root)
 
-                print routing_tables
+        print routing_tables.get_entries_for_router(1,0)
 
         return routing_tables
 
@@ -133,23 +132,26 @@ class NerRoute(object):
         link_ids = list()
         x, y = root.chip
 
-        for (root_chip, next_hop) in root.children:
-            if root_chip is not None:
+        for (route, next_hop) in root.children:
+            if route is not None:
                 link = None
-                if isinstance(root_chip, Routes):
-                    if root_chip.is_core:
-                        processor_ids.append(root_chip.core_num)
+                if isinstance(route, Routes):
+                    if route.is_core:
+                        processor_ids.append(route.core_num)
                     else:
-                        link = root_chip.value
+                        link = route.value
                         link_ids.append(link)
-                elif isinstance(root_chip, Links):
-                    link = root_chip.value
+                elif isinstance(route, Links):
+                    link = route.value
                     link_ids.append(link)
                 if isinstance(next_hop, RoutingTree):
                     next_incoming_link = None
                     if link is not None:
                         next_incoming_link = (link + 3) % 6
                     next_hops.append((next_hop, next_incoming_link))
+
+        if len(link_ids) + len(processor_ids) == 0:
+            print "No further route from {}, {}".format(x, y)
 
         routing_tables.add_path_entry(
             MulticastRoutingTableByPartitionEntry(
@@ -315,10 +317,7 @@ class NerRoute(object):
                 to_xyz(neighbor), to_xyz(destination),
                 machine, width, height)
 
-            # The longest-dimension-first route may inadvertently pass through
-            # an already connected node. If the route is allowed to pass
-            # through that node it would create a cycle in the route which
-            # would be VeryBad(TM). As a result, we work backward through the
+            # Work backward through the
             # route and truncate it at the first point where the route
             # intersects with a connected node.
             ldf = longest_dimension_first(vector, neighbor, width, height)

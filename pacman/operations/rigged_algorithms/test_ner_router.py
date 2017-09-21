@@ -27,15 +27,18 @@ class Vertex(ApplicationVertex):
         return 4000 + (50 * (hi_atom - lo_atom))
 
     def get_resources_used_by_atoms(self, vertex_slice):
-        raise NotImplementedError("get_resources_used_by_atoms")
+        # raise NotImplementedError("get_resources_used_by_atoms")
+        pass
 
     def create_machine_vertex(
             self, vertex_slice, resources_required, label=None,
             constraints=None):
-        raise NotImplementedError("create_machine_vertex")
+        # raise NotImplementedError("create_machine_vertex")
+        pass
 
     def n_atoms(self):
-        raise NotImplementedError("n_atoms")
+        # raise NotImplementedError("n_atoms")
+        pass
 
 
 class TestRouter(unittest.TestCase):
@@ -64,40 +67,21 @@ class TestRouter(unittest.TestCase):
         # sort out placements
         self.placements = Placements()
         self.placement1 = Placement(x=0, y=0, p=2, vertex=self.vertex1)
-        self.placement2 = Placement(x=8, y=7, p=2, vertex=self.vertex2)
+        self.placement2 = Placement(x=7, y=11, p=2, vertex=self.vertex2)
         self.placements.add_placement(self.placement1)
         self.placements.add_placement(self.placement2)
         # sort out routing infos
         self.routing_info = RoutingInfo()
-        self.edge_routing_info1 = PartitionRoutingInfo(
-            key=2 << 11, mask=DEFAULT_MASK, edge=self.edge)
-        self.routing_info.add_partition_info(self.edge_routing_info1)
+        self.edge_routing_info1 = PartitionRoutingInfo(keys_and_masks=DEFAULT_MASK, partition=self.edge)
+        #     # key=2 << 11, mask=DEFAULT_MASK, edge=self.edge)
+        # self.routing_info.add_partition_info(self.edge_routing_info1)
         # create machine
-        self.machine = VirtualMachine(10, 10, False)
+        self.machine = VirtualMachine(28, 16, False)
         self.routing = NerRoute()
         self.routing(
             machine=self.machine, placements=self.placements,
             machine_graph=self.graph)
-
-    # def test_run_router(self):
-    #     # sort out placements
-    #     self.placements = Placements()
-    #     self.placement1 = Placement(x=0, y=0, p=2, vertex=self.vertex1)
-    #     self.placement2 = Placement(x=1, y=1, p=2, vertex=self.vertex2)
-    #     self.placements.add_placement(self.placement1)
-    #     self.placements.add_placement(self.placement2)
-    #     # sort out routing infos
-    #     self.routing_info = RoutingInfo()
-    #     self.edge_routing_info1 = PartitionRoutingInfo(
-    #         key=2 << 11, mask=DEFAULT_MASK, edge=self.edge)
-    #     self.routing_info.add_partition_info(self.edge_routing_info1)
-    #     # create machine
-    #     self.machine = VirtualMachine(10, 10, False)
-    #     self.routing = NerRoute()
-    #     self.routing(
-    #         machine=self.machine, placements=self.placements,
-    #         machine_graph=self.graph)
-
+        print self.routing_info
 
 if __name__ == '__main__':
     unittest.main()
