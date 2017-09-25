@@ -673,7 +673,6 @@ def _search_route(
         text += "Virtual FPGA Link"
     text += "{}:{}:{} -> ".format(
         source_placement.x, source_placement.y, source_placement.p)
-    # print "Source placement tested: {}".format(text)
 
     # Start the search
     number_of_entries = 0
@@ -683,7 +682,10 @@ def _search_route(
         source_placement.x, source_placement.y, key_and_mask,
         dest_placement.x, dest_placement.y, dest_placement.p, machine,
         routing_tables, number_of_entries)
-
+    if extra_text is None:
+        extra_text = "Error from source {}, {} to destination {}, {}".format(
+            source_placement.x, source_placement.y, dest_placement.x,
+            dest_placement.y)
     text += extra_text
     return text, total_number_of_entries
 
@@ -723,13 +725,6 @@ def _recursive_trace_to_destinations(
         # If the current chip is real, find the link to the destination
         table = routing_tables.get_routing_table_for_chip(chip_x, chip_y)
         entry = _locate_routing_entry(table, key_and_mask.key)
-
-        if len(entry.link_ids) == 0:
-            print "No way out of table: {},{}".format(table.x, table.y)
-
-        # if entry is None:
-        #     print "No routing entry for ({}, {}), table: {}".format(chip_x, chip_y, table)
-
         for link_id in entry.link_ids:
             link = chip.router.get_link(link_id)
             result, new_n_entries = _recursive_trace_to_destinations(
@@ -745,7 +740,7 @@ def _recursive_trace_to_destinations(
             chip_x, chip_y, direction_text, result)
         return text, new_n_entries + 1
 
-    return "Error", 0
+    return None, None
 
 
 def _add_direction(link):

@@ -121,8 +121,6 @@ class NerRoute(object):
 
                 self.convert_route(routing_tables, partition, 0, None, root)
 
-        print routing_tables.get_entries_for_router(1,0)
-
         return routing_tables
 
     def convert_route(self, routing_tables, partition, incoming_processor,

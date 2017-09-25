@@ -280,6 +280,9 @@ def _convert_next_route(
                     next_incoming_link = (link + 3) % 6
                 next_hops.append((next_hop, next_incoming_link))
 
+    if len(link_ids) + len(processor_ids) == 0:
+        print "No further route from {}, {}".format(x, y)
+
     routing_tables.add_path_entry(MulticastRoutingTableByPartitionEntry(
         link_ids, processor_ids, incoming_processor,
         incoming_link), x, y, partition)
