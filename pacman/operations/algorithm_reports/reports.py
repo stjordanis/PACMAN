@@ -29,7 +29,7 @@ class _Report(object):
             logger.error("%s: Can't open file %s for writing.",
                          self.activity, self.filename, exc_info=True)
         return None
-            
+
     def __exit__(self, exty, exval, traceback):  # @UnusedVariable
         self._f.close()
         return False
