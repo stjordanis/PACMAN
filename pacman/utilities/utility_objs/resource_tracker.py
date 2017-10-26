@@ -4,9 +4,10 @@ from pacman.model.constraints.placer_constraints\
     import ChipAndCoreConstraint, AbstractPlacerConstraint
 from pacman.model.resources import ResourceContainer, DTCMResource, \
     SDRAMResource, CPUCyclesPerTickResource
-from pacman.utilities import utility_calls
 from pacman.exceptions import PacmanInvalidParameterException, \
     PacmanProcessorNotAvailableError, PacmanValueError, PacmanException
+from pacman.utilities.utility_calls import check_constrained_value,\
+    check_algorithm_can_support_constraints, is_equal_or_None
 
 from spinn_utilities.ordered_set import OrderedSet
 
@@ -234,7 +235,7 @@ class ResourceTracker(object):
             placement_constraints.update(additional_placement_constraints)
 
         # Check the placement constraints
-        utility_calls.check_algorithm_can_support_constraints(
+        check_algorithm_can_support_constraints(
             constrained_vertices=vertices,
             supported_constraints=placement_constraints,
             abstract_constraint_type=AbstractPlacerConstraint)
@@ -264,7 +265,7 @@ class ResourceTracker(object):
 
         for constraint in constraints:
             if isinstance(constraint, BoardConstraint):
-                board_address = utility_calls.check_constrained_value(
+                board_address = check_constrained_value(
                     constraint.board_address, board_address)
         return board_address, ip_tags, reverse_ip_tags
 
@@ -289,9 +290,9 @@ class ResourceTracker(object):
         p = None
         for constraint in constraints:
             if isinstance(constraint, ChipAndCoreConstraint):
-                x = utility_calls.check_constrained_value(constraint.x, x)
-                y = utility_calls.check_constrained_value(constraint.y, y)
-                p = utility_calls.check_constrained_value(constraint.p, p)
+                x = check_constrained_value(constraint.x, x)
+                y = check_constrained_value(constraint.y, y)
+                p = check_constrained_value(constraint.p, p)
 
         if chips is not None and x is not None and y is not None:
             if (x, y) not in chips:
@@ -545,11 +546,10 @@ class ResourceTracker(object):
         for (other_board_address, other_tag) in existing_tags:
             (other_strip_sdp, other_port) = self._ip_tags_strip_sdp_and_port[
                 other_board_address, other_tag]
-            if (utility_calls.is_equal_or_None(
-                    other_board_address, board_address) and
-                    utility_calls.is_equal_or_None(other_tag, tag_id) and
+            if (is_equal_or_None(other_board_address, board_address) and
+                    is_equal_or_None(other_tag, tag_id) and
                     other_strip_sdp == strip_sdp and
-                    utility_calls.is_equal_or_None(other_port, port)):
+                    is_equal_or_None(other_port, port)):
 
                 # If the existing tag is on the same board, return immediately
                 if (eth_chip is not None and
@@ -582,11 +582,10 @@ class ResourceTracker(object):
         :rtype: bool
         """
         if board_address is None and tag is not None:
-            for board_addr in self._boards_with_ip_tags:
-                if (board_addr not in self._tags_by_board or
-                        tag in self._tags_by_board[board_addr]):
-                    return True
-            return False
+            return any(
+                addr not in self._tags_by_board
+                or tag in self._tags_by_board[addr]
+                for addr in self._boards_with_ip_tags)
         elif board_address is not None and tag is None:
             return board_address in self._boards_with_ip_tags
         elif board_address is None and tag is None:

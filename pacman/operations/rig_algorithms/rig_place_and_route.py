@@ -10,49 +10,70 @@ class RigPlaceAndRoute(object):
         to save conversion time
     """
 
-    __slots__ = []
+    __slots__ = ["_graph", "_machine"]
 
     def __call__(self, machine_graph, machine):
-        progress_bar = ProgressBar(9, "Placing and Routing")
+        self._graph = machine_graph
+        self._machine = machine
+        progress = ProgressBar(9, "Placing and Routing")
+        try:
+            return self._place_and_route(progress)
+        finally:
+            progress.end()
 
-        vertices_resources, nets, net_names = \
-            rig_converters.convert_to_rig_graph(machine_graph)
-        progress_bar.update()
+    def _place_and_route(self, p):
+        vertex_resources, nets, net_names = self._rig_graph()
+        p.update()
 
-        rig_machine = rig_converters.convert_to_rig_machine(machine)
-        progress_bar.update()
+        rig_machine = self._rig_machine()
+        p.update()
 
-        rig_constraints = rig_converters.create_rig_machine_constraints(
-            machine)
-        progress_bar.update()
+        constraints = self._rig_machine_constraints()
+        p.update()
 
-        rig_constraints.extend(
-            rig_converters.create_rig_graph_constraints(
-                machine_graph, rig_machine))
-        progress_bar.update()
+        self._add_graph_constraits(constraints, rig_machine)
+        p.update()
 
         rig_placements = place(
-            vertices_resources, nets, rig_machine, rig_constraints)
-        progress_bar.update()
+            vertex_resources, nets, rig_machine, constraints)
+        p.update()
 
-        rig_allocations = allocate(
-            vertices_resources, nets, rig_machine, rig_constraints,
-            rig_placements)
-        progress_bar.update()
+        allocations = allocate(
+            vertex_resources, nets, rig_machine, constraints, rig_placements)
+        p.update()
 
         rig_routes = route(
-            vertices_resources, nets, rig_machine, rig_constraints,
-            rig_placements, rig_allocations, "cores")
+            vertex_resources, nets, rig_machine, constraints, rig_placements,
+            allocations, "cores")
+        # Invert the map
         rig_routes = {
             name: rig_routes[net] for net, name in net_names.iteritems()}
-        progress_bar.update()
+        p.update()
 
-        placements = rig_converters.convert_from_rig_placements(
-            rig_placements, rig_allocations, machine_graph)
-        progress_bar.update()
-        routes = rig_converters.convert_from_rig_routes(
-            rig_routes, machine_graph)
-        progress_bar.update()
-        progress_bar.end()
+        placements = self._from_rig_placements(rig_placements, allocations)
+        p.update()
 
+        routes = self._from_rig_routes(rig_routes)
+        p.update()
         return placements, routes
+
+    def _rig_graph(self):
+        return rig_converters.convert_to_rig_graph(self._graph)
+
+    def _rig_machine(self):
+        return rig_converters.convert_to_rig_machine(self._machine)
+
+    def _rig_machine_constraints(self):
+        return rig_converters.create_rig_machine_constraints(self._machine)
+
+    def _add_graph_constraits(self, constraints, rig_machine):
+        constraints.extend(
+            rig_converters.create_rig_graph_constraints(
+                self._graph, rig_machine))
+
+    def _from_rig_placements(self, rig_placements, rig_allocations):
+        return rig_converters.convert_from_rig_placements(
+            rig_placements, rig_allocations, self._graph)
+
+    def _from_rig_routes(self, rig_routes):
+        return rig_converters.convert_from_rig_routes(rig_routes, self._graph)
