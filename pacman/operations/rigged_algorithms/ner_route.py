@@ -395,7 +395,7 @@ class NerRoute(object):
 
                 # Skip links which are broken
                 if not machine.is_link_at(neighbor[0], neighbor[1],
-                                           neighbor_link):
+                                          neighbor_link):
                     continue
 
                 # Skip neighbors which have already been visited

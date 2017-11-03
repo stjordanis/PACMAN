@@ -17,7 +17,8 @@ class MulticastRoutingTableByPartition(object):
         """ Adds a multicast routing path entry
 
         :param entry: the entry to add
-        :type entry: :py:class:`pacman.model.routing_table_by_partition.MulticastRoutingTableByPartitionEntry`
+        :type entry: \
+            :py:class:`pacman.model.routing_table_by_partition.MulticastRoutingTableByPartitionEntry`
         :param router_x: the x coord of the router
         :type router_x: int
         :param router_y: the y coord of the router
@@ -50,11 +51,7 @@ class MulticastRoutingTableByPartition(object):
         :param router_y: the y coord of the router
         :return: return all router_path_entries for the router.
         """
-        key = (router_x, router_y)
-        if key not in self._router_to_entries_map:
-            return ()
-        else:
-            return self._router_to_entries_map[key]
+        return self._router_to_entries_map.get((router_x, router_y), ())
 
     def get_entry_on_coords_for_edge(self, partition, router_x, router_y):
         """ Get an entry from a specific coordinate

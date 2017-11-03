@@ -80,7 +80,7 @@ class RoutingTree(object):
         """
         yield self
 
-        for route, obj in self.children:
+        for _, obj in self.children:
             if isinstance(obj, RoutingTree):
                 for subchild in obj:
                     yield subchild
