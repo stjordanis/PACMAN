@@ -1,12 +1,9 @@
 """General-purpose SpiNNaker-related geometry functions.
 """
 
-from spinn_machine.machine import Machine as machine
 from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
 
 import random
-from six import iteritems
-from enum import Enum
 
 
 def to_xyz(xy):

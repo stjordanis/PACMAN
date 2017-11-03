@@ -72,7 +72,8 @@ class TestRouter(unittest.TestCase):
         self.placements.add_placement(self.placement2)
         # sort out routing infos
         self.routing_info = RoutingInfo()
-        self.edge_routing_info1 = PartitionRoutingInfo(keys_and_masks=DEFAULT_MASK, partition=self.edge)
+        self.edge_routing_info1 = PartitionRoutingInfo(
+            keys_and_masks=DEFAULT_MASK, partition=self.edge)
         #     # key=2 << 11, mask=DEFAULT_MASK, edge=self.edge)
         # self.routing_info.add_partition_info(self.edge_routing_info1)
         # create machine
@@ -82,6 +83,7 @@ class TestRouter(unittest.TestCase):
             machine=self.machine, placements=self.placements,
             machine_graph=self.graph)
         print self.routing_info
+
 
 if __name__ == '__main__':
     unittest.main()

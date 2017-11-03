@@ -1,11 +1,12 @@
-from pacman.model.graphs import AbstractFPGAVertex, AbstractVirtualVertex, \
+from pacman.model.graphs import AbstractVirtualVertex, \
     AbstractSpiNNakerLinkVertex
-from pacman.operations.rigged_algorithms.ner_routing_tree import RoutingTree
-from pacman.operations.rigged_algorithms.geometry import *
 from pacman.exceptions import PacmanRoutingException
-from pacman.operations.rigged_algorithms.routing_enums.links_enum import Links
-from pacman.operations.rigged_algorithms.routing_enums.routes_enum \
-    import Routes
+from .ner_routing_tree import RoutingTree
+from .routing_enums.links_enum import Links
+from .routing_enums.routes_enum import Routes
+from .geometry import concentric_hexagons, longest_dimension_first, \
+    shortest_mesh_path, shortest_mesh_path_length, shortest_torus_path, \
+    shortest_torus_path_length, to_xyz
 from pacman.model.routing_table_by_partition \
     import MulticastRoutingTableByPartition, \
     MulticastRoutingTableByPartitionEntry
@@ -19,8 +20,8 @@ from collections import deque
 class NerRoute(object):
     """Neighbour Exploring Routing (NER) algorithm from J. Navaridas et al.
 
-    Algorithm reference: J. Navaridas et al. SpiNNaker: Enhanced multicast routing,
-    Parallel Computing (2014).
+    Algorithm reference: J. Navaridas et al. SpiNNaker: Enhanced multicast
+    routing, Parallel Computing (2014).
 
     `http://dx.doi.org/10.1016/j.parco.2015.01.002`
     """
@@ -109,9 +110,10 @@ class NerRoute(object):
 
                 # reattach external devices to sources
                 if source_placement.p is None:
-                    source_node = route_lookup[(source_placement.x, source_placement.y)]
-                    new_node = RoutingTree((source_placement.x, source_placement.y))
-                    route_lookup[(source_placement.x, source_placement.y)] = new_node
+                    xy = (source_placement.x, source_placement.y)
+                    source_node = route_lookup[xy]
+                    new_node = RoutingTree(xy)
+                    route_lookup[xy] = new_node
                     direction = machine.get_spinnaker_link_with_id(
                             vertex.spinnaker_link_id,
                             vertex.board_address).connected_link
@@ -432,7 +434,7 @@ class NerRoute(object):
         """
 
         # Can this be changed to an affirmative?
-        for direction, (x, y), routes in root.traverse():
+        for _, (x, y), routes in root.traverse():
             for route in routes:
                 if not machine.is_link_at(x, y, route):
                     return True
@@ -491,7 +493,8 @@ class NerRoute(object):
                 # If this node is not dead, check connectivity to parent node
                 # (no reason to check connectivity between a dead node and its
                 # parent).
-                router = machine.get_chip_at(new_parent.chip[0], new_parent.chip[1]).router
+                router = machine.get_chip_at(
+                    new_parent.chip[0], new_parent.chip[1]).router
                 if router.is_link(direction):
                     link = router.get_link(direction)
                     if machine.is_chip_at(link.destination_x,

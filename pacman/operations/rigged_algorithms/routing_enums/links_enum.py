@@ -65,6 +65,7 @@ class Links(IntEnum):
         """Get the opposite link to the one given."""
         return Links((self + 3) % 6)
 
+
 _link_direction_lookup = {
     (+1, +0): Links.east,
     (-1, +0): Links.west,

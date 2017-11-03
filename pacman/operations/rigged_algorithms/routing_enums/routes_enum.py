@@ -71,4 +71,3 @@ class Routes(IntEnum):
             return self - 6
         else:
             raise ValueError("{} is not a core".format(repr(self)))
-
