@@ -105,9 +105,16 @@ class MallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
                 vertex_partitions.extend(sorted_partitions)
             continuous_groups = vertex_partitions
 
+        # find max number of keys
+        l = []
+        for group in continuous_groups:
+            l.append(n_keys_map.n_keys_for_partition(group))
+
+        common_mask = self._get_possible_masks(max(l))
+
         for group in continuous_groups:
             keys_and_masks = self._allocate_keys_and_masks(
-                None, None, n_keys_map.n_keys_for_partition(group))
+                common_mask, None, n_keys_map.n_keys_for_partition(group))
 
             # update the pacman data objects
             self._update_routing_objects(keys_and_masks, routing_infos, group)
