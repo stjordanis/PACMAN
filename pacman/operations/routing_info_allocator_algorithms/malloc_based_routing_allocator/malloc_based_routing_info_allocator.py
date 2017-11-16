@@ -114,7 +114,7 @@ class MallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
 
         for group in continuous_groups:
             keys_and_masks = self._allocate_keys_and_masks(
-                common_mask, None, n_keys_map.n_keys_for_partition(group))
+                common_mask[0], None, n_keys_map.n_keys_for_partition(group))
 
             # update the pacman data objects
             self._update_routing_objects(keys_and_masks, routing_infos, group)
