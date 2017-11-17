@@ -147,9 +147,10 @@ class MallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
                     key=lambda part: graph_mapper.get_slice(
                         part.pre_vertex))
                 vertex_partitions.extend(sorted_partitions)
-            continuous_groups = vertex_partitions
-            continuous_groups.extend(L_V_Py_list)
+            continuous_groups = L_V_Py_list
             continuous_groups.extend(L_VI_Py_list)
+            continuous_groups.extend(vertex_partitions)              
+
         print len(continuous_groups)
 
         # find max number of keys
