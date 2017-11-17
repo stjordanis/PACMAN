@@ -106,6 +106,17 @@ class MallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
                 vertex_partitions.extend(sorted_partitions)
             continuous_groups = vertex_partitions
 
+        # group layer IV and V pyramidal by by pre_vertex name so they can
+        # be given consecutive keys
+        for p in continuous_groups:
+            if str(p.pre_vertex).startswith("Col"):
+                if str(p.pre_vertex).__contains__("L_VI_Py"):
+                    if not str(p.pre_vertex).__contains__("spike_source"):
+                        print p.pre_vertex
+
+
+
+
         # find max number of keys
         l = []
         for group in continuous_groups:
