@@ -91,12 +91,55 @@ class MallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
 
         # If there is a graph, group by source vertex and sort by vertex slice
         # (lo_atom)
+#         if graph_mapper is not None:
+#             vertex_groups = defaultdict(list)
+#             for partition in continuous_groups:
+#                 vertex = graph_mapper.get_application_vertex(
+#                     partition.pre_vertex)
+#                 vertex_groups[vertex].append(partition)
+#             vertex_partitions = list()
+#             for vertex_group in vertex_groups.itervalues():
+#                 sorted_partitions = sorted(
+#                     vertex_group,
+#                     key=lambda part: graph_mapper.get_slice(
+#                         part.pre_vertex))
+#                 vertex_partitions.extend(sorted_partitions)
+#             continuous_groups = vertex_partitions
+
+        # group layer V and VI pyramidal by by pre_vertex name so they can
+        # be given consecutive keys
+        print len(continuous_groups)
+
         if graph_mapper is not None:
+            L_V_Py_list = []
+            L_VI_Py_list = []
+            partition_by_source_vertex_list = []
             vertex_groups = defaultdict(list)
-            for partition in continuous_groups:
+            for p in continuous_groups:
+                if str(p.pre_vertex).startswith("Col"):
+                    if not str(p.pre_vertex).__contains__("spike_source"):
+                        if str(p.pre_vertex).__contains__("L_V_Py"):
+                            print p.pre_vertex
+                            L_V_Py_list.append(p)
+                        elif str(p.pre_vertex).__contains__("L_VI_Py"):
+                            L_VI_Py_list.append(p)
+                        else:
+                            partition_by_source_vertex_list.append(p)
+                    else:
+                        partition_by_source_vertex_list.append(p)
+
+                else:
+                    # add to partition by vertex list
+                    partition_by_source_vertex_list.append(p)
+            print ("L_V_Py: {}".format(len(L_V_Py_list)))
+            print ("L_VI_Py: {}".format(len(L_VI_Py_list)))
+            print ("partition_by_source_vertex_list: {}".format(len(partition_by_source_vertex_list)))
+
+            for p in partition_by_source_vertex_list:
                 vertex = graph_mapper.get_application_vertex(
-                    partition.pre_vertex)
-                vertex_groups[vertex].append(partition)
+                p.pre_vertex)
+                vertex_groups[vertex].append(p)
+
             vertex_partitions = list()
             for vertex_group in vertex_groups.itervalues():
                 sorted_partitions = sorted(
@@ -105,17 +148,9 @@ class MallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
                         part.pre_vertex))
                 vertex_partitions.extend(sorted_partitions)
             continuous_groups = vertex_partitions
-
-        # group layer IV and V pyramidal by by pre_vertex name so they can
-        # be given consecutive keys
-        for p in continuous_groups:
-            if str(p.pre_vertex).startswith("Col"):
-                if str(p.pre_vertex).__contains__("L_VI_Py"):
-                    if not str(p.pre_vertex).__contains__("spike_source"):
-                        print p.pre_vertex
-
-
-
+            continuous_groups.extend(L_V_Py_list)
+            continuous_groups.extend(L_VI_Py_list)
+        print len(continuous_groups)
 
         # find max number of keys
         l = []
