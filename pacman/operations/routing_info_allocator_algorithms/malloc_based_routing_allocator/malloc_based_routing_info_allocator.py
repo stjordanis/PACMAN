@@ -149,14 +149,14 @@ class MallocBasedRoutingInfoAllocator(ElementAllocatorAlgorithm):
                 vertex_partitions.extend(sorted_partitions)
             continuous_groups = L_V_Py_list
             continuous_groups.extend(L_VI_Py_list)
-            continuous_groups.extend(vertex_partitions)              
+            continuous_groups.extend(vertex_partitions)
 
         print len(continuous_groups)
 
         # find max number of keys
-        l = []
-        for group in continuous_groups:
-            l.append(n_keys_map.n_keys_for_partition(group))
+#         l = []
+#         for group in continuous_groups:
+#             l.append(n_keys_map.n_keys_for_partition(group))
 
         common_mask = self._get_possible_masks(max(l))
 
