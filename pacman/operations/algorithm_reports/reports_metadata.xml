@@ -1,7 +1,7 @@
 <algorithms xmlns="https://github.com/SpiNNakerManchester/PACMAN"
-		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xsi:schemaLocation="https://github.com/SpiNNakerManchester/PACMAN
-			https://raw.githubusercontent.com/SpiNNakerManchester/PACMAN/master/pacman/operations/algorithms_metadata_schema.xsd">
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://github.com/SpiNNakerManchester/PACMAN
+            https://raw.githubusercontent.com/SpiNNakerManchester/PACMAN/master/pacman/operations/algorithms_metadata_schema.xsd">
     <algorithm name="PlacerReportWithApplicationGraph">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
         <python_function>placer_reports_with_application_graph</python_function>
@@ -30,15 +30,22 @@
                 <param_name>machine</param_name>
                 <param_type>MemoryExtendedMachine</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>PlacerReportsEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
             <param_name>hostname</param_name>
-            <param_name>graph</param_name>
-            <param_name>graph_mapper</param_name>
             <param_name>placements</param_name>
             <param_name>machine</param_name>
+            <param_name>enabled</param_name>
         </required_inputs>
+        <optional_inputs>
+            <param_name>graph</param_name>
+            <param_name>graph_mapper</param_name>
+        </optional_inputs>
     </algorithm>
     <algorithm name="PlacerReportWithoutApplicationGraph">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
@@ -64,6 +71,10 @@
                 <param_name>machine</param_name>
                 <param_type>MemoryExtendedMachine</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>PlacerReportsEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
@@ -71,11 +82,12 @@
             <param_name>machine_graph</param_name>
             <param_name>placements</param_name>
             <param_name>machine</param_name>
+            <param_name>enabled</param_name>
         </required_inputs>
     </algorithm>
-    <algorithm name="RouterReports">
+    <algorithm name="EdgeRoutingPathReport">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
-        <python_function>router_report_from_paths</python_function>
+        <python_function>edge_routing_path_report</python_function>
         <input_definitions>
             <parameter>
                 <param_name>report_folder</param_name>
@@ -105,6 +117,10 @@
                 <param_name>machine</param_name>
                 <param_type>MemoryExtendedMachine</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>EdgeRoutingPathReportEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
@@ -114,11 +130,12 @@
             <param_name>hostname</param_name>
             <param_name>placements</param_name>
             <param_name>machine</param_name>
+            <param_name>enabled</param_name>
         </required_inputs>
     </algorithm>
-    <algorithm name="routingInfoReports">
+    <algorithm name="VirtualKeySpaceInformationReport">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
-        <python_function>routing_info_report</python_function>
+        <python_function>virtual_key_space_information_report</python_function>
         <input_definitions>
             <parameter>
                 <param_name>report_folder</param_name>
@@ -132,16 +149,21 @@
                 <param_name>routing_infos</param_name>
                 <param_type>MemoryRoutingInfos</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>VirtualKeySpaceInformationReportEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
             <param_name>machine_graph</param_name>
             <param_name>routing_infos</param_name>
+            <param_name>enabled</param_name>
         </required_inputs>
     </algorithm>
-    <algorithm name="unCompressedRoutingTableReports">
+    <algorithm name="RoutingTablesReport">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
-        <python_function>router_report_from_router_tables</python_function>
+        <python_function>routing_tables_report</python_function>
         <input_definitions>
             <parameter>
                 <param_name>report_folder</param_name>
@@ -151,15 +173,20 @@
                 <param_name>routing_tables</param_name>
                 <param_type>MemoryRoutingTables</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>RoutingTableReportsEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
+            <param_name>enabled</param_name>
             <param_name>routing_tables</param_name>
         </required_inputs>
     </algorithm>
-    <algorithm name="compressedRoutingTableReports">
+    <algorithm name="CompressedRoutingTablesReport">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
-        <python_function>router_report_from_compressed_router_tables</python_function>
+        <python_function>compressed_routing_tables_report</python_function>
         <input_definitions>
             <parameter>
                 <param_name>report_folder</param_name>
@@ -169,15 +196,20 @@
                 <param_name>routing_tables</param_name>
                 <param_type>MemoryCompressedRoutingTables</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>RoutingTableReportsEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
+            <param_name>enabled</param_name>
             <param_name>routing_tables</param_name>
         </required_inputs>
     </algorithm>
-    <algorithm name="comparisonOfRoutingTablesReport">
+    <algorithm name="ComparisonOfRoutingTablesReport">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
-        <python_function>generate_comparison_router_report</python_function>
+        <python_function>comparison_of_routing_tables_report</python_function>
         <input_definitions>
             <parameter>
                 <param_name>report_folder</param_name>
@@ -191,9 +223,14 @@
                 <param_name>routing_tables</param_name>
                 <param_type>MemoryRoutingTables</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>RoutingTableReportsEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
+            <param_name>enabled</param_name>
             <param_name>compressed_routing_tables</param_name>
             <param_name>routing_tables</param_name>
         </required_inputs>
@@ -211,6 +248,10 @@
                 <param_type>IPAddress</param_type>
             </parameter>
             <parameter>
+                <param_name>machine_graph</param_name>
+                <param_type>MemoryMachineGraph</param_type>
+            </parameter>
+            <parameter>
                 <param_name>graph</param_name>
                 <param_type>MemoryApplicationGraph</param_type>
             </parameter>
@@ -218,17 +259,25 @@
                 <param_name>graph_mapper</param_name>
                 <param_type>MemoryGraphMapper</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>PartitionerReportEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
             <param_name>hostname</param_name>
+            <param_name>enabled</param_name>
+            <param_name>machine_graph</param_name>
+        </required_inputs>
+        <optional_inputs>
             <param_name>graph</param_name>
             <param_name>graph_mapper</param_name>
-        </required_inputs>
+        </optional_inputs>
     </algorithm>
     <algorithm name="TagReport">
         <python_module>pacman.operations.algorithm_reports.reports</python_module>
-        <python_function>tag_allocator_report</python_function>
+        <python_function>tag_report</python_function>
         <input_definitions>
             <parameter>
                 <param_name>report_folder</param_name>
@@ -238,10 +287,15 @@
                 <param_name>tag_infos</param_name>
                 <param_type>MemoryTags</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>TagReportEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
             <param_name>tag_infos</param_name>
+            <param_name>enabled</param_name>
         </required_inputs>
     </algorithm>
     <algorithm name="NetworkSpecificationReport">
@@ -257,10 +311,15 @@
                 <param_type>MemoryApplicationGraph</param_type>
                 <param_type>MemoryMachineGraph</param_type>
             </parameter>
+            <parameter>
+                <param_name>enabled</param_name>
+                <param_type>NetworkSpecificationReportEnabled</param_type>
+            </parameter>
         </input_definitions>
         <required_inputs>
             <param_name>report_folder</param_name>
             <param_name>graph</param_name>
+            <param_name>enabled</param_name>
         </required_inputs>
     </algorithm>
 </algorithms>

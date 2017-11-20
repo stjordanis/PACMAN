@@ -9,7 +9,7 @@ class NetworkSpecification(object):
     """ Generate report on the user's network specification.
     """
 
-    def __call__(self, report_folder, graph):
+    def __call__(self, report_folder, graph, enabled):
         """
         :param report_folder: the directory to which reports are stored
         :type report_folder: str
@@ -17,6 +17,8 @@ class NetworkSpecification(object):
         :type graph: pacman.model.graph.application.application_graph.Graph
         :rtype: None
         """
+        if not enabled:
+            return
         filename = report_folder + os.sep + "network_specification.rpt"
         f_network_specification = None
         try:
