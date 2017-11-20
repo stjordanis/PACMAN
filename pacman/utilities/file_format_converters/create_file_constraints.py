@@ -80,6 +80,8 @@ class CreateConstraintsToFile(object):
 
         :param vertex:
         :param machine:
+        :return: chip identifier string, direction identifier
+        :rtype: tuple(str,int)
         """
         # locate the chip from the placement constraint
         placement_constraint = utility_calls.locate_constraints_of_type(

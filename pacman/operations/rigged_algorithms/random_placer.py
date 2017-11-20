@@ -20,7 +20,6 @@ class RandomPlacer(object):
     THRESHOLD = 3
 
     def __call__(self, machine_graph, machine):
-
         # check that the algorithm can handle the constraints
         ResourceTracker.check_constraints(machine_graph.vertices)
 

@@ -86,13 +86,12 @@ class FixedRouteRouter(object):
         # lazy cheat
         fixed_route_tables = dict()
 
+        if destination_class is None:
+            return fixed_route_tables
+
         progress_bar = ProgressBar(
             len(machine.ethernet_connected_chips),
             "generating fixed router routes.")
-
-        if destination_class is None:
-            progress_bar.end()
-            return fixed_route_tables
 
         # handle per board
         for ethernet_connected_chip in progress_bar.over(

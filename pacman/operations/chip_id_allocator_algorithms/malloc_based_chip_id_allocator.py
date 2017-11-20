@@ -31,25 +31,22 @@ class MallocBasedChipIdAllocator(ElementAllocatorAlgorithm):
     def __call__(self, machine, graph=None):
         if graph is not None:
             # Go through the groups and allocate keys
-            progress_bar = ProgressBar(
+            progress = ProgressBar(
                 graph.n_vertices + machine.n_chips,
                 "Allocating virtual identifiers")
 
             # allocate standard ids for real chips
-            for x, y in machine.chip_coordinates:
+            for x, y in progress.over(machine.chip_coordinates, False):
                 expected_chip_id = (x << 8) + y
                 self._allocate_elements(expected_chip_id, 1)
-                progress_bar.update()
 
             # allocate ids for virtual chips
-            for vertex in graph.vertices:
+            for vertex in progress.over(graph.vertices):
                 if isinstance(vertex, AbstractVirtualVertex):
                     link_data = self._get_link_data(vertex, machine)
                     virtual_x, virtual_y = self._assign_virtual_chip_info(
                         machine, link_data)
                     vertex.set_virtual_chip_coordinates(virtual_x, virtual_y)
-                progress_bar.update()
-            progress_bar.end()
 
         return machine
 

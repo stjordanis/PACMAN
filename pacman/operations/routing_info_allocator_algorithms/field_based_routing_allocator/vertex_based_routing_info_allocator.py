@@ -84,14 +84,14 @@ class VertexBasedRoutingInfoAllocator(object):
         :param n_keys_map: the mapping between edges and n keys
         :return: routing information objects
         """
-        progress_bar = ProgressBar(
+        progress = ProgressBar(
             machine_graph.n_outgoing_edge_partitions * 3,
             "Allocating routing keys")
 
         # ensure groups are stable and correct
         self._determine_groups(
             machine_graph, graph_mapper, application_graph, n_keys_map,
-            progress_bar)
+            progress)
 
         # define the key space
         bit_field_space = BitField(32)
@@ -99,7 +99,7 @@ class VertexBasedRoutingInfoAllocator(object):
 
         # locate however many types of constraints there are
         seen_fields = field_utilities.deduce_types(machine_graph)
-        progress_bar.update(machine_graph.n_outgoing_edge_partitions)
+        progress.update(machine_graph.n_outgoing_edge_partitions)
 
         if len(seen_fields) > 1:
             self._adds_application_field_to_the_fields(seen_fields)
@@ -120,7 +120,7 @@ class VertexBasedRoutingInfoAllocator(object):
         seen_mask_instances = 0
 
         # extract keys and masks for each edge from the bitfield
-        for partition in machine_graph.outgoing_edge_partitions:
+        for partition in progress.over(machine_graph.outgoing_edge_partitions):
             # get keys and masks
             keys_and_masks, seen_mask_instances = \
                 self._extract_keys_and_masks_from_bit_field(
@@ -130,10 +130,6 @@ class VertexBasedRoutingInfoAllocator(object):
             # update routing info for each edge in the partition
             partition_info = PartitionRoutingInfo(keys_and_masks, partition)
             routing_info.add_partition_info(partition_info)
-
-            # update the progress bar again
-            progress_bar.update()
-        progress_bar.end()
 
         return routing_info, field_positions
 

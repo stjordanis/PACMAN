@@ -34,9 +34,8 @@ class BasicTagAllocator(object):
         # Check that the algorithm can handle the constraints
         progress = ProgressBar(placements.n_placements + 1, "Allocating tags")
         placements_with_tags = list()
-        for placement in placements.placements:
+        for placement in progress.over(placements.placements, False):
             self._gather_placements_with_tags(placement, placements_with_tags)
-            progress.update()
 
         # Go through and allocate the tags
         tags = Tags()

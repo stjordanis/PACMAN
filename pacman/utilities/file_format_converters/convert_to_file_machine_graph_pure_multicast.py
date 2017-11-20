@@ -22,7 +22,7 @@ class ConvertToFileMachineGraphPureMulticast(object):
         :param file_path:
         """
         progress = ProgressBar(
-            machine_graph.n_vertices + 1, "Converting to json graph")
+            machine_graph.n_vertices + 1, "Converting to JSON graph")
 
         # write basic stuff
         json_graph = dict()
@@ -43,7 +43,6 @@ class ConvertToFileMachineGraphPureMulticast(object):
         with open(file_path, "w") as file_to_write:
             json.dump(json_graph, file_to_write)
         progress.update()
-
         progress.end()
 
         return file_path, vertex_by_id, partition_by_id

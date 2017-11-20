@@ -19,7 +19,7 @@ class ConvertToFileCoreAllocations(object):
         """
 
         progress = ProgressBar(len(placements) + 1,
-                               "Converting to json core allocations")
+                               "Converting to JSON core allocations")
 
         # write basic stuff
         json_dict = dict()
