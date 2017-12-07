@@ -97,7 +97,7 @@ class FixedRouteRouter(object):
             # if clean, use assumed routes
             if is_fully_working:
                 self._do_fixed_routing(
-                    fixed_route_tables, board_version, placements,
+                    fixed_route_tables, board_version, placements, machine,
                     ethernet_chip_x, ethernet_chip_y, destination_class)
             else:  # use router for avoiding dead chips
                 self._do_dynamic_routing(
@@ -170,7 +170,7 @@ class FixedRouteRouter(object):
             fixed_route_tables[key] = fixed_route_entry
 
     def _do_fixed_routing(
-            self, fixed_route_tables, board_version, placements,
+            self, fixed_route_tables, board_version, placements, machine,
             ethernet_chip_x, ethernet_chip_y, destination_class):
         """ handles this board through the quick routing process
 
@@ -181,11 +181,23 @@ class FixedRouteRouter(object):
         :param ethernet_chip_y: chip y of the ethernet connected chip
         :param destination_class: the class of the vertex to route to at \
         the ethernet connected chip
+        :param machine: the spiNNMachine instance
         :rtype: None
         """
 
         # process each path separately
-        if board_version == 5 or board_version == 4:
+        if (board_version is None
+                and machine.max_chip_x == 1 and machine.max_chip_y == 1):
+            paths = self.router_path_chips_4
+            joins = self.joins_4
+        elif(board_version is None
+                and machine.max_chip_x == 7 and machine.max_chip_y == 7):
+            paths = self.router_path_chips_48
+            joins = self.joins_48
+        elif board_version is None:
+            raise Exception(
+                "don't know how to handle such a odd machine shape")
+        elif board_version == 5 or board_version == 4:
             paths = self.router_path_chips_48
             joins = self.joins_48
         else:
