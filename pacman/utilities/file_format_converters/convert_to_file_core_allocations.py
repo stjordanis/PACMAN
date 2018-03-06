@@ -1,9 +1,9 @@
-from pacman.utilities.file_format_schemas.validator \
-    import validate_core_allocations
+from pacman.utilities.file_format_schemas import validate
 
 from spinn_utilities.progress_bar import ProgressBar
 
 import json
+from collections import OrderedDict
 
 
 class ConvertToFileCoreAllocations(object):
@@ -22,21 +22,21 @@ class ConvertToFileCoreAllocations(object):
                                "Converting to JSON core allocations")
 
         # write basic stuff
-        json_dict = dict()
-        json_dict['type'] = "cores"
-        vertex_by_id = dict()
+        json_obj = OrderedDict()
+        json_obj['type'] = "cores"
+        vertex_by_id = OrderedDict()
 
         # process placements
         for placement in progress.over(placements, False):
-            self._convert_placement(placement, vertex_by_id, json_dict)
+            self._convert_placement(placement, vertex_by_id, json_obj)
 
         # dump dict into json file
         with open(file_path, "w") as f:
-            json.dump(json_dict, f)
+            json.dump(json_obj, f)
         progress.update()
 
         # validate the schema
-        validate_core_allocations(json_dict)
+        validate(json_obj, "core_allocations.json")
 
         # complete progress bar
         progress.end()

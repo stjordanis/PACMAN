@@ -1,6 +1,5 @@
-from pacman.utilities.file_format_schemas.validator import validate_placements
+from pacman.utilities.file_format_schemas import validate
 from spinn_utilities.progress_bar import ProgressBar
-
 import json
 
 
@@ -14,16 +13,15 @@ class ConvertToFilePlacement(object):
         """
         :param placements: the memory placements object
         :param file_path: the file path for the placements.json
-        :return: file path for the placements.json
+        :return: file path for the placements.json, mapping from id to vertex\
+            (used for mapping back)
+        :rtype: str, dict(str->MachineVertex)
         """
-
-        # write basic stuff
-        json_obj = dict()
-        vertex_by_id = dict()
-
         progress = ProgressBar(placements.n_placements + 1,
                                "converting to JSON placements")
 
+        json_obj = dict()
+        vertex_by_id = dict()
         # process placements
         for placement in progress.over(placements, False):
             vertex_id = str(id(placement.vertex))
@@ -36,9 +34,7 @@ class ConvertToFilePlacement(object):
 
         # validate the schema
         progress.update()
-        validate_placements(json_obj)
-
-        progress.end()
+        validate(json_obj, "placements.json")
 
         # return the file format
         return file_path, vertex_by_id

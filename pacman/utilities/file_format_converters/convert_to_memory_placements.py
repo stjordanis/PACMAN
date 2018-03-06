@@ -2,8 +2,7 @@
 # pacman imports
 from pacman.model.placements import Placement, Placements
 from pacman.exceptions import PacmanConfigurationException
-from pacman.utilities.file_format_schemas.validator import \
-    validate_placements, validate_core_allocations, validate_constraints
+from pacman.utilities.file_format_schemas import validate
 from pacman.utilities.constants import EDGES
 
 # general imports
@@ -20,7 +19,6 @@ class ConvertToMemoryPlacements(object):
     def __call__(self, extended_machine, placements, allocations,
                  constraints, vertex_by_id):
         """
-
         :param placements:
         :param allocations:
         :param extended_machine:
@@ -32,9 +30,9 @@ class ConvertToMemoryPlacements(object):
             self._load_json_files(placements, allocations, constraints)
 
         # validate the json files against the schemas
-        validate_placements(file_placements)
-        validate_core_allocations(core_allocations)
-        validate_constraints(constraints)
+        validate(file_placements, "placements.json")
+        validate(core_allocations, "core_allocations.json")
+        validate(constraints, "constraints.json")
 
         memory_placements = Placements()
 
@@ -89,20 +87,19 @@ class ConvertToMemoryPlacements(object):
 
     @staticmethod
     def _load_json_files(placements, allocations, constraints):
-        """ Read in the 3 json files needed for the conversion
+        """ Read in the 3 JSON files needed for the conversion
 
         :param placements:
         :param allocations:
         :param constraints:
         """
-
         with open(placements, "r") as f:
-            file_placements = json.load(f)
+            placements_obj = json.load(f)
         with open(allocations, "r") as f:
-            core_allocations = json.load(f)
+            allocations_obj = json.load(f)
         with open(constraints, "r") as f:
-            constraints = json.load(f)
-        return file_placements, core_allocations, constraints
+            constraints_obj = json.load(f)
+        return placements_obj, allocations_obj, constraints_obj
 
     @staticmethod
     def _valid_constraints_for_external_device(constraints_for_vertex):

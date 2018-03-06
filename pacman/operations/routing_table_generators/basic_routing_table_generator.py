@@ -15,10 +15,8 @@ class BasicRoutingTableGenerator(object):
     __slots__ = []
 
     def __call__(
-            self, routing_infos, routing_table_by_partitions,
-            machine):
+            self, routing_infos, routing_table_by_partitions, machine):
         """
-
         :param routing_infos:
         :param routing_table_by_partitions:
         :param machine:
@@ -29,12 +27,11 @@ class BasicRoutingTableGenerator(object):
             entries = routing_table_by_partitions.get_entries_for_router(
                 chip.x, chip.y)
             if entries:
-                routing_tables.add_routing_table(self._create_table(
-                    entries, chip, routing_infos))
+                routing_tables.add_routing_table(self._create_routing_table(
+                    chip, entries, routing_infos))
         return routing_tables
 
-    @staticmethod
-    def _create_table(entries, chip, routing_infos):
+    def _create_routing_table(self, chip, entries, routing_infos):
         table = MulticastRoutingTable(chip.x, chip.y)
         for partition in entries:
             r_info = routing_infos.get_routing_info_from_partition(partition)
@@ -42,8 +39,7 @@ class BasicRoutingTableGenerator(object):
             for key_and_mask in r_info.keys_and_masks:
                 table.add_multicast_routing_entry(MulticastRoutingEntry(
                     routing_entry_key=key_and_mask.key_combo,
-                    defaultable=entry.defaultable,
-                    mask=key_and_mask.mask,
+                    defaultable=entry.defaultable, mask=key_and_mask.mask,
                     link_ids=entry.out_going_links,
                     processor_ids=entry.out_going_processors))
         return table

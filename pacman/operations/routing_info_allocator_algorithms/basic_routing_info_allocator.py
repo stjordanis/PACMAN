@@ -29,7 +29,7 @@ class BasicRoutingInfoAllocator(object):
         :param machine_graph:\
             The machine graph to allocate the routing info for
         :type machine_graph:\
-            :py:class:`pacman.model.graph.machine.machine_graph.MachineGraph`
+            :py:class:`pacman.model.graphs.machine.MachineGraph`
         :param placements: The placements of the vertices
         :type placements:\
             :py:class:`pacman.model.placements.placements.Placements`
@@ -37,12 +37,12 @@ class BasicRoutingInfoAllocator(object):
             A map between the edges and the number of keys required by the\
             edges
         :type n_keys_map:\
-            :py:class:`pacman.model.routing_info.abstract_machine_partition_n_keys_map.AbstractMachinePartitionNKeysMap`
+            :py:class:`pacman.model.routing_info.AbstractMachinePartitionNKeysMap`
         :return: The routing information
         :rtype:\
-            :py:class:`pacman.model.routing_info.partition_routing_info.PartitionRoutingInfo`
-        :raise pacman.exceptions.PacmanRouteInfoAllocationException: If\
-                   something goes wrong with the allocation
+            :py:class:`pacman.model.routing_info.PartitionRoutingInfo`
+        :raise pacman.exceptions.PacmanRouteInfoAllocationException: \
+            If something goes wrong with the allocation
         """
 
         # check that this algorithm supports the constraints put onto the
@@ -61,12 +61,13 @@ class BasicRoutingInfoAllocator(object):
         for vertex in progress.over(machine_graph.vertices):
             for partition in machine_graph.\
                     get_outgoing_edge_partitions_starting_at_vertex(vertex):
-                routing_infos.add_partition_info(self._create_routing_info(
-                    vertex, partition, placements, n_keys_map))
-
+                routing_infos.add_partition_info(
+                    self._allocate_key_for_partition(
+                        partition, vertex, placements, n_keys_map))
         return routing_infos
 
-    def _create_routing_info(self, vertex, partition, placements, n_keys_map):
+    def _allocate_key_for_partition(
+            self, partition, vertex, placements, n_keys_map):
         n_keys = n_keys_map.n_keys_for_partition(partition)
         if n_keys > MAX_KEYS_SUPPORTED:
             raise PacmanRouteInfoAllocationException(
@@ -80,8 +81,8 @@ class BasicRoutingInfoAllocator(object):
             raise PacmanRouteInfoAllocationException(
                 "The vertex '{}' has no placement".format(vertex))
 
-        key = self._get_key_from_placement(placement)
-        keys_and_masks = list([BaseKeyAndMask(base_key=key, mask=MASK)])
+        keys_and_masks = list([BaseKeyAndMask(
+            base_key=self._get_key_from_placement(placement), mask=MASK)])
         return PartitionRoutingInfo(keys_and_masks, partition)
 
     @staticmethod
@@ -90,7 +91,7 @@ class BasicRoutingInfoAllocator(object):
 
         :param placement: the associated placement
         :type placement:\
-                    :py:class:`pacman.model.placements.placement.Placement`
+            :py:class:`pacman.model.placements.Placement`
         :return: The key
         :rtype: int
         """
