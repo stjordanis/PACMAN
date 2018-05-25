@@ -25,6 +25,8 @@ _SDRAM_FILENAME = "chip_sdram_usage_by_core.rpt"
 _TAGS_FILENAME = "tags.rpt"
 _VIRTKEY_FILENAME = "virtual_key_space_information_report.rpt"
 
+_LOWER_16_BITS = 0xFFFF
+
 
 class _Report(object):
     def __init__(self, activity, folder, name, *args):
@@ -41,8 +43,8 @@ class _Report(object):
             self._f = open(self.filename, "w")
             return self._f
         except IOError:
-            logger.error("{}: Can't open file {} for writing.",
-                         self.activity, self.filename, exc_info=True)
+            logger.exception("{}: Can't open file {} for writing.",
+                             self.activity, self.filename)
         return None
 
     def __exit__(self, exty, exval, traceback):  # @UnusedVariable

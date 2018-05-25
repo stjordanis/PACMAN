@@ -1,4 +1,5 @@
 from pacman.utilities.file_format_schemas import validate
+from pacman.utilities.utility_calls import ident
 from spinn_utilities.progress_bar import ProgressBar
 import json
 
@@ -24,7 +25,7 @@ class ConvertToFilePlacement(object):
         vertex_by_id = dict()
         # process placements
         for placement in progress.over(placements, False):
-            vertex_id = str(id(placement.vertex))
+            vertex_id = ident(placement.vertex)
             vertex_by_id[vertex_id] = placement.vertex
             json_obj[vertex_id] = [placement.x, placement.y]
 

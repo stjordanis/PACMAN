@@ -1,4 +1,4 @@
-from spinn_utilities.progress_bar import ProgressBar
+from spinn_utilities.progress_bar import ProgressBar, DummyProgressBar
 
 # pacman imports
 from pacman.exceptions import PacmanRoutingException
@@ -7,7 +7,10 @@ from pacman.model.routing_table_by_partition import \
     MulticastRoutingTableByPartition, MulticastRoutingTableByPartitionEntry
 
 # general imports
-import itertools
+try:
+    import itertools.izip as zip  # @ReservedAssignment
+except ImportError:
+    pass
 import logging
 import sys
 
@@ -25,7 +28,7 @@ class _NodeInfo(object):
 
     @property
     def neighweights(self):
-        return itertools.izip(self.neighbours, self.weights)
+        return zip(self.neighbours, self.weights)
 
 
 class _DijkstraInfo(object):
@@ -60,7 +63,8 @@ class BasicDijkstraRouting(object):
     MAX_BW = 250
 
     def __call__(self, placements, machine, machine_graph,
-                 bw_per_route_entry=BW_PER_ROUTE_ENTRY, max_bw=MAX_BW):
+                 bw_per_route_entry=BW_PER_ROUTE_ENTRY, max_bw=MAX_BW,
+                 use_progress_bar=True):
         """ Find routes between the edges with the allocated information,\
             placed in the given places
 
@@ -72,6 +76,8 @@ class BasicDijkstraRouting(object):
         :param machine_graph: the machine_graph object
         :type machine_graph:\
             :py:class:`pacman.model.graphs.machine.MachineGraph`
+        :param use_progress_bar: whether to show a progress bar
+        :type use_progress_bar: bool
         :return: The discovered routes
         :rtype:\
             :py:class:`pacman.model.routing_tables.MulticastRoutingTables`
@@ -90,8 +96,10 @@ class BasicDijkstraRouting(object):
         self._update_all_weights(nodes_info)
 
         # each vertex represents a core in the board
-        progress = ProgressBar(
-            placements.n_placements, "Creating routing entries")
+        pb_factory = ProgressBar if use_progress_bar else DummyProgressBar
+        progress = pb_factory(placements.n_placements,
+                              "Creating routing entries")
+
         for placement in progress.over(placements.placements):
             self._route(placement, placements, machine, machine_graph,
                         nodes_info, tables)
@@ -257,7 +265,7 @@ class BasicDijkstraRouting(object):
     @staticmethod
     def _minimum(tables):
         # This is the lowest cost across ALL deactivated nodes in the graph.
-        lowest_cost = sys.maxint
+        lowest_cost = sys.maxsize
         lowest = None
 
         # Find the next node to be activated

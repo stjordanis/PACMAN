@@ -1,4 +1,3 @@
-
 # pacman imports
 from pacman.model.placements import Placement, Placements
 from pacman.exceptions import PacmanConfigurationException
@@ -7,6 +6,7 @@ from pacman.utilities.constants import EDGES
 
 # general imports
 import json
+from six import text_type
 
 
 class ConvertToMemoryPlacements(object):
@@ -39,7 +39,7 @@ class ConvertToMemoryPlacements(object):
         # process placements
         for vertex_id in file_placements:
             if str(vertex_id) not in vertex_by_id:
-                if unicode(vertex_id) not in core_allocations:
+                if text_type(vertex_id) not in core_allocations:
                     raise PacmanConfigurationException(
                         "I don't recognise this pattern of constraints for"
                         " a vertex which does not have a placement")
@@ -48,7 +48,7 @@ class ConvertToMemoryPlacements(object):
                         "Failed to locate the vertex in the "
                         "graph with id {}".format(vertex_id))
 
-            if unicode(vertex_id) in core_allocations:
+            if text_type(vertex_id) in core_allocations:
                 memory_placements.add_placement(Placement(
                     x=file_placements[vertex_id][0],
                     y=file_placements[vertex_id][1],

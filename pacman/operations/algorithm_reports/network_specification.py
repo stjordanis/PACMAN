@@ -27,8 +27,8 @@ class NetworkSpecification(object):
                 for vertex in graph.vertices:
                     self._write_report(f, vertex, graph)
         except IOError:
-            logger.error("Generate_placement_reports: Can't open file {}"
-                         " for writing.", filename, exc_info=True)
+            logger.exception("Generate_placement_reports: Can't open file {}"
+                             " for writing.", filename)
 
     @staticmethod
     def _write_report(f, vertex, graph):

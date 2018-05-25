@@ -12,6 +12,7 @@ from pacman.utilities.utility_calls import check_constrained_value,\
 from spinn_utilities.ordered_set import OrderedSet
 
 from collections import defaultdict
+from six import raise_from
 
 
 class ResourceTracker(object):
@@ -180,13 +181,17 @@ class ResourceTracker(object):
         for sdram_pre_allocated in preallocated_resources.specific_sdram_usage:
             chip = sdram_pre_allocated.chip
             sdram = sdram_pre_allocated.sdram_usage
-            self._sdram_tracker[chip.x, chip.y] = sdram
+            if (chip.x, chip.y) in self._sdram_tracker:
+                self._sdram_tracker[chip.x, chip.y] += sdram
+            else:
+                self._sdram_tracker[chip.x, chip.y] = sdram
 
         # remove specific cores from the tracker
         for specific_core in preallocated_resources.specific_core_resources:
             chip = specific_core.chip
             processor_ids = specific_core.cores
-            self._fill_in_core_tracker_for_chip((chip.x, chip.y), chip)
+            if not (chip.x, chip.y) in self._core_tracker:
+                self._fill_in_core_tracker_for_chip((chip.x, chip.y), chip)
             for processor_id in processor_ids:
                 self._core_tracker[chip.x, chip.y].remove(processor_id)
 
@@ -195,7 +200,10 @@ class ResourceTracker(object):
         for arbitrary_core in preallocated_resources.core_resources:
             chip = arbitrary_core.chip
             n_cores = arbitrary_core.n_cores
-            chip_to_arbitrary_core_requirement[chip.x, chip.y] = n_cores
+            if (chip.x, chip.y) in chip_to_arbitrary_core_requirement:
+                chip_to_arbitrary_core_requirement[chip.x, chip.y] += n_cores
+            else:
+                chip_to_arbitrary_core_requirement[chip.x, chip.y] = n_cores
 
         # handle specific iptags
         for ip_tag in preallocated_resources.specific_iptag_resources:
@@ -436,7 +444,7 @@ class ResourceTracker(object):
             for processor in chip.processors:
                 if not processor.is_monitor:
                     return processor.processor_id
-        return iter(self._core_tracker[key]).next()
+        return next(iter(self._core_tracker[key]))
 
     def _is_core_available(self, chip, key, processor_id):
         """ Check if there is a core available on a given chip given the\
@@ -784,7 +792,7 @@ class ResourceTracker(object):
                     board_address = b_address
                     break
         elif board_address is None and tag_id is None:
-            board_address = iter(self._boards_with_ip_tags).next()
+            board_address = next(iter(self._boards_with_ip_tags))
 
         self._setup_board_tags(board_address)
         tag_id = self._allocate_tag_id(tag_id, board_address)
@@ -1217,8 +1225,7 @@ class ResourceTracker(object):
         """ Get the maximum resources available given the constraints
 
         :param resources: The resources of the item to check
-        :type resources:\
-            :py:class:`pacman.model.resources.AbstractResource`
+        :type resources: ResourceContainer
         :type constraints: \
             iterable of\
             :py:class:`pacman.model.constraints.AbstractConstraint`
@@ -1278,10 +1285,10 @@ class ResourceTracker(object):
                 try:
                     max_dtcm_available = processor.dtcm_available
                     max_cpu_available = processor.cpu_cycles_available
-                except AttributeError:
+                except AttributeError as e:
                     if processor is None:
-                        raise PacmanProcessorNotAvailableError(
-                            chip_x, chip_y, best_processor_id)
+                        raise_from(PacmanProcessorNotAvailableError(
+                            chip_x, chip_y, best_processor_id), e)
                     raise
 
             # If all the SDRAM on the chip is available,

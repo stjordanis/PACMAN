@@ -5,8 +5,7 @@ from pacman.exceptions import PacmanRoutingException
 from spinn_utilities.progress_bar import ProgressBar
 from spinn_machine import MulticastRoutingEntry
 
-_MASK = 0xFFFF0000L  # upper 16 bits of mask
-_LOW_32_BITS = 0xFFFFFFFFL
+_SPINNAKER_ROUTER_SIZE = 1024
 
 
 class BasicRouteMerger(object):
@@ -14,7 +13,15 @@ class BasicRouteMerger(object):
         exploration process
     """
 
-    __slots__ = []
+    __slots__ = ["_bits", "_mask_width", "_key_mask", "_mask_mask", "_width"]
+
+    def __init__(self, width=32, mask_bits=16):
+        assert 0 < mask_bits < width
+        self._width = width
+        self._bits = (1 << width) - 1
+        self._mask_width = mask_bits
+        self._mask_mask = (1 << mask_bits) - 1
+        self._key_mask = self._bits ^ self._mask_mask
 
     def __call__(self, router_tables):
         tables = MulticastRoutingTables()
@@ -24,7 +31,8 @@ class BasicRouteMerger(object):
                                "Compressing Routing Tables")
 
         # Create all masks without holes
-        allowed_masks = [_LOW_32_BITS - ((2 ** i) - 1) for i in range(33)]
+        allowed_masks = [self._bits - ((2 ** i) - 1)
+                         for i in range(self._width + 1)]
 
         # Check that none of the masks have "holes" e.g. 0xFFFF0FFF has a hole
         for router_table in router_tables.routing_tables:
@@ -41,9 +49,9 @@ class BasicRouteMerger(object):
             n_entries = len([
                 entry for entry in new_table.multicast_routing_entries
                 if not entry.defaultable])
-            # print "Reduced from {} to {}".format(
-            #     len(router_table.multicast_routing_entries), n_entries)
-            if n_entries > 1023:
+            # print("Reduced from {} to {}".format(
+            #     len(router_table.multicast_routing_entries), n_entries))
+            if n_entries >= _SPINNAKER_ROUTER_SIZE:
                 raise PacmanRoutingException(
                     "Cannot make table small enough: {} entries".format(
                         n_entries))
@@ -54,13 +62,14 @@ class BasicRouteMerger(object):
         if mask in previous_masks:
             return previous_masks[mask]
 
-        last_one = 33 - bin(mask).rfind('1')
-        n_bits = 16 - last_one
+        last_one = self._width + 1 - bin(mask).rfind('1')
+        n_bits = self._mask_width - last_one
         merge_masks = sorted(
-            [0xFFFF - ((2 ** n) - 1) for n in range(n_bits - 1, 17)],
+            [self._mask_mask - ((2 ** n) - 1)
+             for n in range(n_bits - 1, self._mask_width + 1)],
             key=lambda x: bin(x).count("1"))
 
-        # print hex(mask), [hex(m) for m in merge_masks]
+        # print(hex(mask), [hex(m) for m in merge_masks])
         previous_masks[mask] = merge_masks
         return merge_masks
 
@@ -74,7 +83,7 @@ class BasicRouteMerger(object):
                 continue
 
             mask = router_entry.mask
-            if mask & _MASK != _MASK or not self._merge_a_route(
+            if not self._merge_a_route(
                     entries, mask, previous_masks, router_entry,
                     merged_routes, keys_merged):
                 merged_routes.add_multicast_routing_entry(router_entry)
@@ -83,15 +92,17 @@ class BasicRouteMerger(object):
 
     def _merge_a_route(self, entries, mask, previous_masks, router_entry,
                        routes, keys_merged):
+        if mask & self._key_mask != self._key_mask:
+            return False
         for extra_bits in self._get_merge_masks(mask, previous_masks):
-            new_mask = _MASK | extra_bits
+            new_mask = self._key_mask | extra_bits
             new_key = router_entry.routing_entry_key & new_mask
             new_last_key = self._last_key(new_key, new_mask)
 
             potential_merges = self._mergeable_entries(
                 router_entry, entries, new_key, new_mask, new_last_key,
                 keys_merged)
-            if potential_merges:
+            if len(potential_merges) > 1:
                 # if masked_key in routes:
                 #     raise Exception("Attempting to merge an existing key")
                 routes.add_multicast_routing_entry(MulticastRoutingEntry(
@@ -102,9 +113,8 @@ class BasicRouteMerger(object):
                 return True
         return False
 
-    @staticmethod
-    def _last_key(key, mask):
-        n_keys = ~mask & _LOW_32_BITS
+    def _last_key(self, key, mask):
+        n_keys = ~mask & self._bits
         return key + n_keys
 
     def _mergeable_entries(
@@ -115,7 +125,7 @@ class BasicRouteMerger(object):
         potential_merges = set()
         for entry_2 in entries:
             key = entry_2.routing_entry_key
-            n_keys = ~entry_2.mask & 0xFFFFFFFFL
+            n_keys = ~entry_2.mask & self._bits
             last_key = key + n_keys
             masked_key = entry_2.routing_entry_key & new_mask
             overlap = (min(new_last_key, last_key) - max(new_key, key)) > 0

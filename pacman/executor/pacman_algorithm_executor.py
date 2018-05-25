@@ -14,6 +14,7 @@ from pacman.executor.algorithm_decorators.token import Token
 import logging
 from collections import defaultdict
 from spinn_utilities.log import FormatAdapter
+from six import iterkeys
 
 logger = FormatAdapter(logging.getLogger(__name__))
 
@@ -266,7 +267,7 @@ class PACMANAlgorithmExecutor(object):
         """
 
         # Go through the algorithms and get all possible outputs
-        all_outputs = set(inputs.iterkeys())
+        all_outputs = set(iterkeys(inputs))
         for algorithms in (algorithm_data, optional_algorithm_data):
             for algorithm in algorithms:
 
@@ -316,7 +317,7 @@ class PACMANAlgorithmExecutor(object):
                         fake_tokens.track_token(token)
                         fake_tokens.process_output_token(token)
 
-        input_types = set(inputs.iterkeys())
+        input_types = set(iterkeys(inputs))
 
         allocated_algorithms = list()
         generated_outputs = set()
@@ -390,27 +391,26 @@ class PACMANAlgorithmExecutor(object):
             else:
 
                 # Failed to find an algorithm to run!
-                algorithms_left_names = list()
+                algorithms_to_find_names = list()
                 for algorithm in algorithms_to_find:
-                    algorithms_left_names.append(algorithm.algorithm_id)
+                    algorithms_to_find_names.append(algorithm.algorithm_id)
+                optional_algorithms_names = list()
                 for algorithm in optional_algorithm_data:
-                    algorithms_left_names.append(algorithm.algorithm_id)
+                    optional_algorithms_names.append(algorithm.algorithm_id)
                 algorithms_used = list()
                 for algorithm in allocated_algorithms:
                     algorithms_used.append(algorithm.algorithm_id)
                 algorithm_input_requirement_breakdown = ""
                 for algorithm in algorithms_to_find:
-                    if algorithm.algorithm_id in algorithms_left_names:
-                        algorithm_input_requirement_breakdown += \
-                            self._deduce_inputs_required_to_run(
-                                algorithm, input_types, token_states,
-                                fake_inputs, fake_tokens)
+                    algorithm_input_requirement_breakdown += \
+                        self._deduce_inputs_required_to_run(
+                            algorithm, input_types, token_states,
+                            fake_inputs, fake_tokens)
                 for algorithm in optionals_to_use:
-                    if algorithm.algorithm_id in algorithms_left_names:
-                        algorithm_input_requirement_breakdown += \
-                            self._deduce_inputs_required_to_run(
-                                algorithm, input_types, token_states,
-                                fake_inputs, fake_tokens)
+                    algorithm_input_requirement_breakdown += \
+                        self._deduce_inputs_required_to_run(
+                            algorithm, input_types, token_states,
+                            fake_inputs, fake_tokens)
                 algorithms_by_output = defaultdict(list)
                 algorithms_by_token = defaultdict(list)
                 for algorithms in (algorithm_data, optional_algorithm_data):
@@ -431,7 +431,8 @@ class PACMANAlgorithmExecutor(object):
                     "    Tokens complete: {}\n"
                     "    Fake tokens complete: {}\n"
                     "    Tokens to find: {}\n"
-                    "    Functions available: {}\n"
+                    "    Required algorithms remaining to be used: {}\n"
+                    "    Optional Algorithms unused: {}\n"
                     "    Functions used: {}\n"
                     "    Algorithm by outputs: {}\n"
                     "    Algorithm by tokens: {}\n"
@@ -442,8 +443,11 @@ class PACMANAlgorithmExecutor(object):
                         token_states.get_completed_tokens(),
                         fake_tokens.get_completed_tokens(),
                         tokens_to_find,
-                        algorithms_left_names, algorithms_used,
-                        algorithms_by_output, algorithms_by_token,
+                        algorithms_to_find_names,
+                        optional_algorithms_names,
+                        algorithms_used,
+                        algorithms_by_output,
+                        algorithms_by_token,
                         algorithm_input_requirement_breakdown))
 
         # Test that the outputs are generated
@@ -732,8 +736,7 @@ class PACMANAlgorithmExecutor(object):
 
                 provenance_file.write("\n")
         except Exception:
-            logger.error("Exception when attempting to write provenance",
-                         exc_info=True)
+            logger.exception("Exception when attempting to write provenance")
 
     def _report_inputs(self, provenance_file, inputs):
         for input_parameter in inputs:

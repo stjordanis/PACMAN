@@ -3,6 +3,7 @@ from rig.place_and_route.place.sa import place
 from rig.place_and_route.allocate.greedy import allocate
 from rig.place_and_route.route.ner import route
 from spinn_utilities.progress_bar import ProgressBar
+from six import iteritems
 
 
 class RigPlaceAndRoute(object):
@@ -47,7 +48,7 @@ class RigPlaceAndRoute(object):
             allocations, "cores")
         # Invert the map
         rig_routes = {
-            name: rig_routes[net] for net, name in net_names.iteritems()}
+            name: rig_routes[net] for net, name in iteritems(net_names)}
         p.update()
 
         placements = self._from_rig_placements(rig_placements, allocations)
