@@ -164,9 +164,17 @@ class ResourceTracker(object):
                 pre_allocated = self._n_cores_preallocated[(chip.x, chip.y)]
             if pre_allocated > chip.n_user_processors:
                 raise Exception(
-                    "{} cores preallocated on {}, {} but only {} are available"
-                    .format(pre_allocated, chip.x, chip.y,
-                            chip.n_user_processors))
+                    "{} cores pre-allocated on {}, {} but only {} are"
+                    " available".format(
+                        pre_allocated, chip.x, chip.y, chip.n_user_processors))
+            if (chip.n_user_processors - pre_allocated) >= len(
+                    self._chips_with_n_cores_available):
+                raise Exception(
+                    "Odd requirement found on {}, {}: list length = {},"
+                    " {} user cores available, {} cores pre-allocated".format(
+                        chip.x, chip.y,
+                        len(self._chips_with_n_cores_available),
+                        chip.n_user_processors, pre_allocated))
             self._chips_with_n_cores_available[
                 chip.n_user_processors - pre_allocated] += 1
 
