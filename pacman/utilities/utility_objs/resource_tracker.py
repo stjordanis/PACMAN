@@ -162,6 +162,11 @@ class ResourceTracker(object):
             pre_allocated = 0
             if (chip.x, chip.y) in self._n_cores_preallocated:
                 pre_allocated = self._n_cores_preallocated[(chip.x, chip.y)]
+            if pre_allocated > chip.n_user_processors:
+                raise Exception(
+                    "{} cores preallocated on {}, {} but only {} are available"
+                    .format(pre_allocated, chip.x, chip.y,
+                            chip.n_user_processors))
             self._chips_with_n_cores_available[
                 chip.n_user_processors - pre_allocated] += 1
 
